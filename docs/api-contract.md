@@ -1,6 +1,5 @@
 # Contrato de APIs: Módulo de Estoque
 
-**Versão 0.11 (rascunho) · Outubro de 2026**
 **Escopo:** RF-01 a RF-31, RF-36 a RF-42, RNF-01 a RNF-11 e N-01 a N-13. Transferências entre clínicas (RF-31* a RF-35) ficam para fase futura, sem endpoint reservado.
 
 Nomes e prefixos dos outros módulos (iam, org, care, requests, notify, files, audit) são premissas a validar com a arquitetura da plataforma.
