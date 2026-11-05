@@ -64,6 +64,9 @@ model Clinic {
   active     Boolean  @default(true)
   /// D4: a baixa por procedimento é uma proposta que o usuário confirma; esta chave liga a confirmação automática.
   autoConfirmProcedureConsumption Boolean @default(false)
+  /// Contadores para gerar os códigos sem repetir: INS-0001 (insumo) e NR-0001 (nota). Incrementar na mesma transação.
+  itemSeq    Int @default(0)
+  receiptSeq Int @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -75,23 +78,18 @@ model Clinic {
   incorrectReceipts   IncorrectReceipt[]
   packages            Package[]
   alerts              Alert[]
-  users               UserCache[]
 
   @@map("clinics")
 }
 
-/// Cache do IAM: só id, nome e perfil (RNF-06). Sem e-mail, telefone ou documento.
+/// Cache do IAM: só id, nome e perfil (RNF-06). As clínicas do usuário vêm na claim `clinic_ids` do token.
 model UserCache {
   id        String   @id
   name      String
   profile   Profile
-  clinicId  String?  @db.Uuid
   active    Boolean  @default(true)
   updatedAt DateTime @updatedAt
 
-  clinic Clinic? @relation(fields: [clinicId], references: [id])
-
-  @@index([clinicId])
   @@map("user_cache")
 }
 
@@ -191,6 +189,7 @@ model Movement {
 
   @@index([clinicId, occurredAt])
   @@index([clinicId, itemId, occurredAt])
+  @@index([lotId])
   @@unique([clinicId, idempotencyKey])
   @@map("movements")
 }
@@ -354,16 +353,24 @@ model IdempotencyRecord {
   @@map("idempotency_records")
 }
 
-/// Eventos a publicar, gravados na mesma transação da movimentação (padrão outbox).
+/// Eventos a publicar, gravados na mesma transação da movimentação (padrão outbox, decisão D6).
+/// O despachante envia em ordem por `subject`; depois de 5 falhas o evento vai para `dead_letter_events`.
 model OutboxEvent {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type        String
-  subject     String
-  payload     Json
-  createdAt   DateTime  @default(now())
-  publishedAt DateTime?
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type          String
+  /// Chave de ordenação: clínica + insumo.
+  subject       String
+  clinicId      String?   @db.Uuid
+  payload       Json
+  createdAt     DateTime  @default(now())
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  lastError     String?
+  publishedAt   DateTime?
+  /// Preenchido quando o evento foi movido para a fila de descarte.
+  deadAt        DateTime?
 
-  @@index([publishedAt])
+  @@index([publishedAt, deadAt, nextAttemptAt])
   @@map("outbox_events")
 }
 
