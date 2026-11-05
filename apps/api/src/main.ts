@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { OutboxDispatcher } from './events/outbox-dispatcher.service';
 import { APP_CONFIG, type AppConfig } from './config/app.config';
 import { setupSwagger } from './openapi';
 
@@ -31,6 +32,7 @@ async function bootstrap(): Promise<void> {
   if (swaggerEnabled) setupSwagger(app);
 
   await app.listen(config.apiPort);
+  if (config.outboxDispatchEnabled) app.get(OutboxDispatcher).start(config.outboxIntervalMs);
   console.log(`[api] ouvindo em ${config.apiBaseUrl}`);
   if (swaggerEnabled) console.log(`[api] Swagger em ${config.apiBaseUrl}/api/v1/docs`);
 }

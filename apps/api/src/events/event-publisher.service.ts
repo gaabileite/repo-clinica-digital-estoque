@@ -1,14 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { notImplemented } from '../common/not-implemented';
+import type { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import type { PublishedEvent } from './event-types';
 
+export interface PublishOptions {
+  clinicId?: string;
+  /** Transação da movimentação: o evento só existe se ela for confirmada (padrão outbox). */
+  tx?: Prisma.TransactionClient;
+}
+
 /**
- * Publica eventos de domínio.
- * TODO(E4-H1): gravar na tabela outbox_events na mesma transação da movimentação e despachar depois.
+ * Grava o evento no outbox. Não envia nada: quem envia é o {@link OutboxDispatcher}.
+ * Use sempre dentro da transação que altera o saldo: `prisma.$transaction(async (tx) => { ...; publish(..., { tx }) })`.
  */
 @Injectable()
 export class EventPublisher {
-  publish(_type: PublishedEvent, _subject: string, _data: unknown): Promise<void> {
-    return notImplemented('P-01..P-06', 'Publicação de eventos');
+  constructor(private readonly prisma: PrismaService) {}
+
+  async publish(type: PublishedEvent, subject: string, data: unknown, options: PublishOptions = {}): Promise<string> {
+    const client = options.tx ?? this.prisma;
+    const row = await client.outboxEvent.create({
+      data: { type, subject, clinicId: options.clinicId ?? null, payload: data as Prisma.InputJsonValue },
+      select: { id: true },
+    });
+    return row.id;
   }
 }
