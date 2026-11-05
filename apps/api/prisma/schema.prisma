@@ -62,6 +62,8 @@ model Clinic {
   address    String?
   manager    String?
   active     Boolean  @default(true)
+  /// D4: a baixa por procedimento é uma proposta que o usuário confirma; esta chave liga a confirmação automática.
+  autoConfirmProcedureConsumption Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -87,9 +89,7 @@ model UserCache {
   active    Boolean  @default(true)
   updatedAt DateTime @updatedAt
 
-  clinic        Clinic?                  @relation(fields: [clinicId], references: [id])
-  preferences   NotificationPreference[]
-  notifications NotificationRead[]
+  clinic Clinic? @relation(fields: [clinicId], references: [id])
 
   @@index([clinicId])
   @@map("user_cache")
@@ -286,7 +286,8 @@ model PackageItem {
   @@map("package_items")
 }
 
-/// Alertas vigentes (RF-26 a RF-28) e seu histórico. Também alimenta a central de notificações (RF-29).
+/// Alertas vigentes (RF-26 a RF-28) e seu histórico. A caixa de entrada, as preferências e a entrega são do módulo
+/// de Notificações da plataforma (decisão D2): o Estoque só produz o alerta e o envia.
 model Alert {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clinicId  String    @db.Uuid
@@ -299,38 +300,11 @@ model Alert {
   raisedAt  DateTime  @default(now())
   clearedAt DateTime?
 
-  clinic Clinic             @relation(fields: [clinicId], references: [id])
-  item   Item?              @relation(fields: [itemId], references: [id])
-  reads  NotificationRead[]
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  item   Item?  @relation(fields: [itemId], references: [id])
 
   @@index([clinicId, clearedAt])
   @@map("alerts")
-}
-
-model NotificationRead {
-  alertId String   @db.Uuid
-  userId  String
-  readAt  DateTime @default(now())
-
-  alert Alert     @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  user  UserCache @relation(fields: [userId], references: [id])
-
-  @@id([alertId, userId])
-  @@map("notification_reads")
-}
-
-model NotificationPreference {
-  id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId   String
-  kind     AlertKind
-  inApp    Boolean   @default(true)
-  email    Boolean   @default(false)
-  whatsapp Boolean   @default(false)
-
-  user UserCache @relation(fields: [userId], references: [id])
-
-  @@unique([userId, kind])
-  @@map("notification_preferences")
 }
 
 /// Permissões por perfil, editáveis pelo Superuser (RF-03).
@@ -391,4 +365,27 @@ model OutboxEvent {
 
   @@index([publishedAt])
   @@map("outbox_events")
+}
+
+/// Eventos já tratados, para o consumidor ser idempotente (entrega "pelo menos uma vez", decisão D6).
+model ProcessedEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+
+  @@map("processed_events")
+}
+
+/// Fila de descarte: evento que falhou depois das tentativas (decisão D6).
+model DeadLetterEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId   String
+  type      String
+  payload   Json
+  error     String
+  attempts  Int
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("dead_letter_events")
 }

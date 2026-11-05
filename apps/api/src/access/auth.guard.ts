@@ -8,9 +8,10 @@ import { isProfile } from './profile';
 
 /**
  * Identifica o chamador.
- * TODO(E0-H4): repassar o cookie de sessão para `GET {shellApiUrl}/api/v1/auth/me` e montar o AuthContext
- * com o perfil e as clínicas de `user_cache` (ver docs/architecture.md). Enquanto isso, só existe a
- * autenticação de desenvolvimento por cabeçalhos, desligada por padrão e proibida em produção.
+ * TODO(E0-H4): validar o token JWT do IAM (Authorization: Bearer) e montar o AuthContext com as claims
+ * `sub`, `profile` e `clinic_ids` (contrato, parte 2; docs/architecture.md). Enquanto o IAM não emite o token
+ * para o módulo, só existe a autenticação de desenvolvimento por cabeçalhos, desligada por padrão e proibida
+ * em produção.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {

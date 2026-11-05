@@ -21,6 +21,7 @@ CREATE TABLE "clinics" (
     "address" TEXT,
     "manager" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "autoConfirmProcedureConsumption" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -199,27 +200,6 @@ CREATE TABLE "alerts" (
 );
 
 -- CreateTable
-CREATE TABLE "notification_reads" (
-    "alertId" UUID NOT NULL,
-    "userId" TEXT NOT NULL,
-    "readAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "notification_reads_pkey" PRIMARY KEY ("alertId","userId")
-);
-
--- CreateTable
-CREATE TABLE "notification_preferences" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "userId" TEXT NOT NULL,
-    "kind" "AlertKind" NOT NULL,
-    "inApp" BOOLEAN NOT NULL DEFAULT true,
-    "email" BOOLEAN NOT NULL DEFAULT false,
-    "whatsapp" BOOLEAN NOT NULL DEFAULT false,
-
-    CONSTRAINT "notification_preferences_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "role_permissions" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "profile" "Profile" NOT NULL,
@@ -274,6 +254,28 @@ CREATE TABLE "outbox_events" (
     CONSTRAINT "outbox_events_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "processed_events" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "processedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "processed_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "dead_letter_events" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "eventId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "error" TEXT NOT NULL,
+    "attempts" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "dead_letter_events_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "clinics_externalId_key" ON "clinics"("externalId");
 
@@ -323,9 +325,6 @@ CREATE UNIQUE INDEX "package_items_packageId_itemId_key" ON "package_items"("pac
 CREATE INDEX "alerts_clinicId_clearedAt_idx" ON "alerts"("clinicId", "clearedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "notification_preferences_userId_kind_key" ON "notification_preferences"("userId", "kind");
-
--- CreateIndex
 CREATE UNIQUE INDEX "role_permissions_profile_permission_key" ON "role_permissions"("profile", "permission");
 
 -- CreateIndex
@@ -336,6 +335,9 @@ CREATE INDEX "idempotency_records_createdAt_idx" ON "idempotency_records"("creat
 
 -- CreateIndex
 CREATE INDEX "outbox_events_publishedAt_idx" ON "outbox_events"("publishedAt");
+
+-- CreateIndex
+CREATE INDEX "dead_letter_events_createdAt_idx" ON "dead_letter_events"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "user_cache" ADD CONSTRAINT "user_cache_clinicId_fkey" FOREIGN KEY ("clinicId") REFERENCES "clinics"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -393,13 +395,4 @@ ALTER TABLE "alerts" ADD CONSTRAINT "alerts_clinicId_fkey" FOREIGN KEY ("clinicI
 
 -- AddForeignKey
 ALTER TABLE "alerts" ADD CONSTRAINT "alerts_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "notification_reads" ADD CONSTRAINT "notification_reads_alertId_fkey" FOREIGN KEY ("alertId") REFERENCES "alerts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "notification_reads" ADD CONSTRAINT "notification_reads_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user_cache"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "notification_preferences" ADD CONSTRAINT "notification_preferences_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user_cache"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

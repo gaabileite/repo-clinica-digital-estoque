@@ -30,7 +30,6 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { SettingsModule } from './settings/settings.module';
 import { InternalModule } from './internal/internal.module';
 import { BudgetModule } from './budget/budget.module';
-import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -58,7 +57,6 @@ import { NotificationsModule } from './notifications/notifications.module';
     SettingsModule,
     InternalModule,
     BudgetModule,
-    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [
