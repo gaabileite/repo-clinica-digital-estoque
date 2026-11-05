@@ -1,0 +1,10 @@
+{
+  "latestErrorEvent": {
+    "code": "TYPE-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"/opt/homebrew/Cellar/node/26.12.0/bin/node /Users/gabrielaleite/Documents/GitHub/repo-clinica-digital-estoque/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc --project /Users/gabrielaleite/Documents/GitHub/repo-clinica-digital-estoque/apps/web/node_modules/.federation/tsconfig.2f7f544114049d88fd1a8eb00ceb5683.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "args": {
+      "cmd": "/opt/homebrew/Cellar/node/26.12.0/bin/node /Users/gabrielaleite/Documents/GitHub/repo-clinica-digital-estoque/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc --project /Users/gabrielaleite/Documents/GitHub/repo-clinica-digital-estoque/apps/web/node_modules/.federation/tsconfig.2f7f544114049d88fd1a8eb00ceb5683.json"
+    },
+    "timestamp": 1793911494636
+  }
+}

@@ -1,0 +1,72 @@
+/*
+ * Utilitários do Tailwind para os componentes do módulo, mapeados nos tokens semânticos do shell
+ * (bg-surface, text-heading, border-line etc.). Sem preflight e sem redefinir tokens: dentro do shell,
+ * as cores e o tema (classe .dark em <html>) vêm do próprio shell.
+ * O bloco @theme abaixo é copiado de apps/web/src/index.css do shell: mantenha em sincronia.
+ */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-strong: var(--surface-strong);
+
+  --color-heading: var(--heading);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-hover: var(--brand-primary-hover);
+  --color-on-brand: var(--on-brand);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-text: var(--brand-text);
+  --color-brand-deep: var(--cd-purple-deep);
+  --color-brand-dark: var(--cd-purple-dark);
+
+  --color-accent: var(--accent);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-text: var(--accent-text);
+
+  --color-focus-ring: var(--focus-ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-line: var(--sidebar-line);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-indicator: var(--sidebar-indicator);
+
+  --color-success: var(--status-success);
+  --color-success-text: var(--status-success-text);
+  --color-success-subtle: var(--status-success-subtle);
+  --color-success-line: var(--status-success-line);
+  --color-warning: var(--status-warning);
+  --color-warning-text: var(--status-warning-text);
+  --color-warning-subtle: var(--status-warning-subtle);
+  --color-warning-line: var(--status-warning-line);
+  --color-danger: var(--status-danger);
+  --color-danger-text: var(--status-danger-text);
+  --color-danger-subtle: var(--status-danger-subtle);
+  --color-danger-line: var(--status-danger-line);
+  --color-info: var(--status-info);
+  --color-info-text: var(--status-info-text);
+  --color-info-subtle: var(--status-info-subtle);
+  --color-info-line: var(--status-info-line);
+
+  /* Maturidade digital — uso restrito a componentes de maturidade. */
+  --color-maturity-baixo: var(--maturity-baixo);
+  --color-maturity-inicial: var(--maturity-inicial);
+  --color-maturity-em-desenvolvimento: var(--maturity-em-desenvolvimento);
+  --color-maturity-intermediario: var(--maturity-intermediario);
+  --color-maturity-avancado: var(--maturity-avancado);
+}
