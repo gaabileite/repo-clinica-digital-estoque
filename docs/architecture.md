@@ -65,11 +65,11 @@ Princípios:
 
 ## Decisões adotadas
 
-Os interessados não respondem às perguntas em aberto. A equipe seguiu a recomendação do contrato (`api-contract.md`, parte 10) e, onde ela não existe, decidiu por conta própria. Cada decisão vale até haver razão para mudar; ao mudar, atualize esta seção e os arquivos que ela cita.
+Os interessados não respondem às perguntas em aberto. A equipe seguiu a recomendação do contrato (`api-contract.md`, seção 9) e, onde ela não existe, decidiu por conta própria. Cada decisão vale até haver razão para mudar; ao mudar, atualize esta seção e os arquivos que ela cita.
 
 ### Do contrato (D1 a D13)
 
-Texto completo na parte 10 do contrato (versão 0.12).
+Texto completo na seção 9 do contrato (versão 0.12).
 
 | Decisão | Resumo |
 | --- | --- |
@@ -81,7 +81,7 @@ Texto completo na parte 10 do contrato (versão 0.12).
 | D6 Eventos | CloudEvents, "pelo menos uma vez", outbox para publicar, deduplicação por id ao consumir e fila de descarte depois de 5 tentativas. |
 | D7 Auditoria | O Estoque mantém a própria trilha por 5 anos; sem auditoria central. |
 | D8 e D10 Valores e orçamento | Custo unitário de referência por insumo, mantido pelo Controlador; visão orçamentária no módulo; sem orçamento previsto nem custo por lote. Substitui a posição das versões 0.9 a 0.11 do contrato. |
-| D9 SLA | Manutenção aos domingos, 0h às 4h; chamadas entre módulos com limite de 3 s e 2 novas tentativas; disponibilidade alvo de 99,5% no horário das clínicas. |
+| D9 SLA | Manutenção aos domingos, 0h às 4h; chamadas entre módulos com limite de 2 s, 2 novas tentativas e circuit breaker (contrato, seção 8); disponibilidade alvo de 99,5% no horário das clínicas. |
 | D11 Empréstimo | Só registra o destinatário. |
 | D12 Categorias | São as categorias de insumo. |
 | D13 Notificação à empresa | Feita pela equipe, fora do sistema; o sistema alerta aos 45 dias. |
@@ -90,7 +90,7 @@ Texto completo na parte 10 do contrato (versão 0.12).
 
 | Tema | Decisão |
 | --- | --- |
-| Autenticação | Token JWT do IAM no cabeçalho `Authorization`, com as claims `sub`, `profile` e `clinic_ids` (contrato, parte 2). Enquanto o IAM não emitir o token para o módulo, valem os cabeçalhos `x-dev-*`, só em desenvolvimento; a API recusa subir com eles em produção. |
+| Autenticação | Token JWT do IAM no cabeçalho `Authorization`, com as claims `sub`, `profile` e `clinic_ids` (contrato, seção 2). Enquanto o IAM não emitir o token para o módulo, valem os cabeçalhos `x-dev-*`, só em desenvolvimento; a API recusa subir com eles em produção. |
 | Saldo e FEFO | O livro de movimentações é a fonte da verdade. O saldo do lote é atualizado na mesma transação que grava a movimentação. Saídas travam os lotes envolvidos (`SELECT ... FOR UPDATE`, em ordem de id). |
 | Quantidades | `Decimal` no domínio e no banco, string decimal na API. Hoje o domínio usa `number`; trocar é a primeira tarefa da Sprint 2, antes da primeira saída real. |
 | Prefixo das rotas | O módulo responde em `/api/v1`, que o shell encaminha em `/api/v1/supplies`; o gateway da plataforma o publica como `/stock/v1`. |

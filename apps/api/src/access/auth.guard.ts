@@ -9,7 +9,7 @@ import { isProfile } from './profile';
 /**
  * Identifica o chamador.
  * TODO(E0-H4): validar o token JWT do IAM (Authorization: Bearer) e montar o AuthContext com as claims
- * `sub`, `profile` e `clinic_ids` (contrato, parte 2; docs/architecture.md). Enquanto o IAM não emite o token
+ * `sub`, `profile` e `clinic_ids` (contrato, seção 2; docs/architecture.md). Enquanto o IAM não emite o token
  * para o módulo, só existe a autenticação de desenvolvimento por cabeçalhos, desligada por padrão e proibida
  * em produção.
  */

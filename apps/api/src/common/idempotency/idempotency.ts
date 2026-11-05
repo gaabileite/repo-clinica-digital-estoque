@@ -12,7 +12,7 @@ import type { Observable } from 'rxjs';
 
 export const IDEMPOTENT_KEY = 'estoque:idempotent';
 
-/** Marca o POST que altera saldo: o cabeçalho Idempotency-Key é obrigatório (contrato, parte 2). */
+/** Marca o POST que altera saldo: o cabeçalho Idempotency-Key é obrigatório (contrato, seção 2). */
 export const Idempotent = () => SetMetadata(IDEMPOTENT_KEY, true);
 
 /**

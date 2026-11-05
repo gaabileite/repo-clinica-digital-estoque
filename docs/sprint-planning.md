@@ -7,7 +7,7 @@ Interno da equipe. Fonte das histórias: [backlog.md](backlog.md). Os campos ent
 - Duração sugerida: 1 semana por sprint.
 - Uma história só entra na sprint se estiver **pronta para começar** (abaixo) e couber no tempo da sprint.
 
-**Pronta para começar:** critérios de aceite escritos, dependências externas atrás de um adaptador simulado e decisões já registradas em `architecture.md` e na parte 10 do contrato.
+**Pronta para começar:** critérios de aceite escritos, dependências externas atrás de um adaptador simulado e decisões já registradas em `architecture.md` e na seção 9 do contrato.
 
 **Pronta (definição de pronto):** critérios de aceite cobertos por testes, `pnpm lint`, `typecheck` e `test` passando, contrato e cliente sem divergência (`pnpm api:check`), migration versionada quando houver mudança de banco, acessibilidade verificada nas telas, revisão de código aprovada e demonstração feita.
 

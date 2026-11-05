@@ -249,7 +249,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 
 ## Decisões que orientam as histórias
 
-As decisões completas estão em `architecture.md` e na parte 10 do contrato. As que mais mexem nas histórias:
+As decisões completas estão em `architecture.md` e na seção 9 do contrato. As que mais mexem nas histórias:
 
 | Decisão | Afeta |
 | --- | --- |
