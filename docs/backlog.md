@@ -42,7 +42,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 **E0-H4 Autenticação e perfis (RF-35, RNF-05).** [E]
 - Dado o cookie de sessão do shell, então o módulo identifica usuário, perfil e clínica.
 - A API responde 403 fora do perfil ou da clínica, com teste automatizado por perfil.
-- O módulo repassa o cookie de sessão ao `GET /api/v1/auth/me` do shell; o perfil e as clínicas vêm de `user_cache` (ver `architecture.md`).
+- O módulo valida o token JWT do IAM (claims `sub`, `profile`, `clinic_ids`); em desenvolvimento, usa os cabeçalhos `x-dev-*`.
 
 **E0-H5 Contrato OpenAPI e mocks.** [E]
 - Contrato 1.0 publicado, cliente gerado e `api:check` sem divergência.
@@ -55,11 +55,11 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 - Clínica inativa sai das seleções e mantém o histórico.
 
 **E1-H2 Usuários (RF-02).** [E]
-- O Superuser gerencia usuários de qualquer clínica e o Administrador, os da sua.
-- E-mail único; inativar preserva o histórico; cada clínica tem um Controlador Orçamentário.
+- Usuários, perfis e vínculo com clínica são do IAM (decisão D1); o módulo mantém o cache de id, nome e perfil por evento `iam.user.*`.
+- Usuário inativado no IAM não registra mais retiradas; o histórico é preservado. O módulo não cria usuários.
 
 **E1-H3 Permissões (RF-03).** [E]
-- O Superuser ajusta a matriz de permissões por perfil (Anexo A.1) e a mudança vale na requisição seguinte.
+- O Superuser ajusta a matriz perfil → escopos do módulo (Anexo A.1) e a mudança vale na requisição seguinte.
 - Toda alteração entra na auditoria.
 
 **E1-H4 Isolamento e visão da rede (RF-33, RF-34, RN-13).** [E]
@@ -115,6 +115,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 **E4-H3 Pacote de insumos (RF-11, RF-12).** [I]
 - A baixa do pacote desconta todos os itens vezes a quantidade de pacotes; se um item não tem saldo, nada é baixado.
 - Alterar uma quantidade exige justificativa de pelo menos 5 caracteres.
+- Baixas vindas de execuções de procedimento chegam como proposta pendente que o usuário confirma ou ajusta; cada clínica pode ligar a confirmação automática (desligada por padrão, decisão D4).
 
 **E4-H4 Devolução (RF-13).** [I]
 - O item volta ao lote original ou a um lote novo (com lote e validade) e exige o nome de quem retirou e devolveu.
@@ -182,15 +183,15 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 - Média aprendida (dias 15 a 90) de pelo menos 0,15 por dia e queda de 50% ou mais nos últimos 14 dias notifica o Administrador.
 - Executa em rotina diária.
 
-**E6-H5 Central de notificações (RF-29).** [I]
-- Sino com contador, lista, marcar uma ou todas como lida. Não aparece na visão orçamentária.
+**E6-H5 Caixa de entrada de alertas (RF-29).** [I]
+- Sino com contador e lista, lidos da caixa de entrada da plataforma por um adaptador (decisão D2); marcar como lida é feito na plataforma. Não aparece na visão orçamentária.
 
 **E6-H6 Preferências (RF-30).** [I]
-- Por tipo de alerta e canal (aplicativo, e-mail, WhatsApp); padrão: aplicativo ligado e e-mail só para nível crítico.
+- Por tipo de alerta e canal (aplicativo, e-mail, WhatsApp), guardadas na plataforma. O módulo registra as categorias de alerta e os canais padrão: aplicativo ligado e e-mail só para nível crítico.
 
-**E6-H7 Agrupamento, resumo e canal externo (RF-31, RF-32).** [D]
-- Agrupa alertas repetidos e envia resumo periódico (semanal, na segunda-feira).
-- E-mail e WhatsApp simulados até a integração real.
+**E6-H7 Envio, agrupamento e canal externo (RF-31, RF-32).** [D]
+- O módulo envia cada alerta com chave de agrupamento e de repetição; o agrupamento, o resumo semanal (segunda-feira) e os canais e-mail e WhatsApp são da plataforma.
+- Adaptador simulado até a API de Notificações existir.
 
 ## E7. Painel e relatórios (Sprints 4 e 5)
 
@@ -207,7 +208,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 
 **E7-H4 Exportação (RF-41).** [D]
 - PDF e Excel respeitando os filtros da tela; sem dados, mostra aviso em vez de arquivo vazio.
-- Geração no servidor, com resposta direta em PDF ou Excel.
+- Exportação assíncrona (resposta 202) gerada no servidor, com o arquivo guardado pelo módulo de Arquivos (adaptador simulado).
 
 ## E8. Visão orçamentária (Sprint 5)
 
@@ -221,6 +222,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 **E8-H3 Telas monetárias (RF-44, RN-14, RN-15).** [I]
 - Valor em estoque (inclui vencidos até serem descartados), valor perdido dos últimos 30 dias sem estornados e consumo em reais.
 - Quantidades, níveis críticos, cobertura, lotes, validades e alertas ficam ocultos.
+- Exportação das telas monetárias em PDF e Excel.
 
 **E8-H4 Chave do Superuser (RF-45, RNF-05).** [I]
 - Ligada, o Superuser vê as telas monetárias; desligada, a API não entrega nenhum valor monetário.
@@ -247,19 +249,20 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 
 ## Decisões que orientam as histórias
 
-As decisões completas estão em `architecture.md`. As que mais mexem nas histórias:
+As decisões completas estão em `architecture.md` e na parte 10 do contrato. As que mais mexem nas histórias:
 
 | Decisão | Afeta |
 | --- | --- |
-| Autenticação delegada ao `/auth/me` do shell, com perfil em `user_cache` | E0-H4, E1-H2, E1-H3 |
-| Custo por insumo mantido pelo Controlador; sem orçamento previsto | E8 inteiro |
-| Empréstimo só com destinatário | E4-H1 |
-| Notificação à empresa fora do sistema | E5-H5 |
+| D1: o IAM é dono de usuários, perfis e vínculo; token JWT | E0-H4, E1-H2, E1-H3 |
+| D2: caixa de entrada e preferências são da plataforma | E6-H5, E6-H6, E6-H7 |
+| D4: baixa por procedimento é proposta pendente | E4-H3 |
+| D6: eventos com outbox, deduplicação e fila de descarte | E4-H1, E5-H1, E6-H2 a E6-H4 |
+| D7: o Estoque mantém a própria trilha de auditoria | E1-H5 |
+| D8 e D10: custo por insumo mantido pelo Controlador | E8 inteiro |
+| D11: empréstimo só com destinatário | E4-H1 |
+| D13: notificação à empresa fora do sistema | E5-H5 |
 | Margem de 20% e antecedência de 30 dias, ajustáveis | E2-H4, E2-H5, E6-H1 |
-| Solicitações atrás de adaptador simulado | E5-H6 |
-| Baixa manual de lotes vencidos | E4-H5 |
-| Resumo semanal de notificações | E6-H7 |
-| Exportação gerada no servidor | E5-H3, E7-H4 |
+| Exportação assíncrona em PDF e Excel | E5-H3, E7-H4 |
 
 ## Definição de pronto (proposta)
 

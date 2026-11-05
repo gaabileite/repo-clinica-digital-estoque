@@ -2,13 +2,19 @@
 
 **Escopo:** RF-01 a RF-31, RF-36 a RF-42, RNF-01 a RNF-11 e N-01 a N-13. Transferências entre clínicas (RF-31* a RF-35) ficam para fase futura, sem endpoint reservado.
 
-Nomes e prefixos dos outros módulos (iam, org, care, requests, notify, files, audit) são premissas a validar com a arquitetura da plataforma.
+**Versão 0.12.** Nomes e prefixos dos outros módulos (iam, org, care, requests, notify, files, audit) são premissas adotadas (seção 9). Mudanças em relação à 0.11:
+- As 13 decisões em aberto (D1 a D13) foram fechadas pela recomendação do contrato (seção 9).
+- Perfil Controlador Orçamentário (`budget-controller`) e custo unitário por insumo: rotas E-57 a E-60 e escopos `stock:budget:*`. Substitui a posição das versões anteriores de que não haveria valores (D8 e D10).
+- Campos em inglês em toda a API (o cadastro de insumo usa `name`, `categoryId`, `unit`, `recordsTemperature`, `tracksLotAndExpiry`, `estimatedLeadTimeDays` e `expiryAlertLeadDays`).
+- Exportações em PDF e Excel (XLSX), no lugar de CSV e PDF.
+- O módulo responde internamente em `/api/v1` (o shell encaminha `/api/v1/supplies`) e o gateway o publica como `/stock/v1`.
+- Os identificadores RF deste documento seguem a numeração da versão 1 dos requisitos; os itens novos usam o prefixo V2 (numeração da v2.0). A renumeração completa fica para a versão 1.0.
 
 ## 1. Responsabilidades
 
 | Dado | Dono | Papel do Estoque |
 |---|---|---|
-| Usuários, perfis, sessões | IAM | Guarda só ID e cache de nome |
+| Usuários, perfis, sessões | IAM | Guarda só ID, nome e perfil (cache) e o mapa perfil → escopos |
 | Clínicas | Organização | Cria o tenant ao receber o evento |
 | Procedimentos e execuções | Atendimento | Guarda o vínculo pacote ↔ procedimento |
 | Pedidos de insumo | Solicitações | Lê o pedido e informa o recebimento |
@@ -20,8 +26,8 @@ Nomes e prefixos dos outros módulos (iam, org, care, requests, notify, files, a
 ## 2. Convenções
 
 - **Formato:** REST/HTTPS (TLS 1.2+), JSON UTF-8, OpenAPI 3.1. Eventos em CloudEvents 1.0.
-- **Base:** `/stock/v1`.
-- **Autenticação:** OAuth 2.0/OIDC, JWT Bearer. Claims: `sub`, `profile` (superuser, admin, warehouse), `clinic_ids`, `scope`. Entre serviços: client credentials.
+- **Base:** `/stock/v1` (no módulo, `/api/v1`).
+- **Autenticação:** OAuth 2.0/OIDC, JWT Bearer. Claims: `sub`, `profile` (superuser, admin, warehouse, budget-controller), `clinic_ids`, `scope`. Entre serviços: client credentials.
 - **Isolamento:** recursos sob `/clinics/{clinicId}`. Responde 403 se a clínica não está em `clinic_ids`, exceto superuser (leitura em todas).
 - **IDs:** UUID v7. O código do insumo (`sku`) é único por clínica.
 - **Quantidades:** string decimal (`"12.500"`).
@@ -41,7 +47,7 @@ Nomes e prefixos dos outros módulos (iam, org, care, requests, notify, files, a
 | A1 IAM | Essencial | 1 |
 | A2 Organização | Essencial | 1 |
 | A5 Notificações | Essencial | 1 |
-| A7 Auditoria | Essencial | 1 |
+| A7 Auditoria | Opcional (D7: o Estoque mantém a trilha sozinho) | 3 |
 | A3 Atendimento | Essencial | 2 |
 | A4 Solicitações | Importante | 2 |
 | A6 Arquivos | Importante | 3 |
@@ -89,11 +95,11 @@ Nomes e prefixos dos outros módulos (iam, org, care, requests, notify, files, a
 
 ## 5. APIs expostas (`/stock/v1`)
 
-Perfis: **S** superuser, **A** administrador, **AL** almoxarife. O superuser lê todas as clínicas e não registra movimentações. "+serviço" = acesso por client credentials com escopo `stock:service`. `{c}` = `/clinics/{clinicId}`.
+Perfis: **S** superuser, **A** administrador, **AL** almoxarife, **C** controlador orçamentário. O superuser lê todas as clínicas e não registra movimentações. "+serviço" = acesso por client credentials com escopo `stock:service`. `{c}` = `/clinics/{clinicId}`.
 
 ### Cadastros
 - E-01 `GET {c}/items`: lista insumos (filtros `q`, `code`, `category`, `status`, `active`). S A AL
-- E-02 `POST {c}/items`: cria insumo (nome, categoria, unidade, `registraTemperatura`, `controlaLoteValidade`, `tempoReposicaoEstimadoDias`, `antecedenciaAlertaValidadeDias`). Código `INS-0001…` gerado pelo sistema. A
+- E-02 `POST {c}/items`: cria insumo (`name`, `categoryId`, `unit`, `recordsTemperature`, `temperatureRange`, `tracksLotAndExpiry`, `estimatedLeadTimeDays`, `expiryAlertLeadDays`). Código `INS-0001…` gerado pelo sistema. A
 - E-03 `GET {c}/items/{id}`: detalhe. S A AL
 - E-04 `PATCH {c}/items/{id}`: altera (If-Match). O código não muda. A
 - E-05 `POST {c}/items/{id}/deactivate`: inativa (`/reactivate` reativa). Não apaga insumo com saldo. A
@@ -147,10 +153,10 @@ Perfis: **S** superuser, **A** administrador, **AL** almoxarife. O superuser lê
 - E-41 `GET {c}/alerts`: condições vigentes: `critical-level`, `expiry`, `lot-not-nearest`, `high-withdrawal`, `consumption-drop`, `incorrect-receipt-overdue`. Cada usuário vê os tipos do seu perfil. S A AL
 
 ### Relatórios
-- E-42 `GET {c}/reports/consumption`: consumo em quantidade. `groupBy`: `item`, `clinic`, `week` (os dois últimos exigem `itemId`). Aceita `text/csv`. S A
+- E-42 `GET {c}/reports/consumption`: consumo em quantidade. `groupBy`: `item`, `clinic`, `week` (os dois últimos exigem `itemId`). Aceita `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (XLSX). S A
 - E-43 `GET {c}/reports/losses`: perda por validade e descarte por avaria. S A
 - E-44 `GET {c}/reports/abc`: curva ABC por quantidade consumida. S A
-- E-45 `POST {c}/report-exports`: exportação assíncrona CSV/PDF. Responde 202; consulta em `/report-exports/{id}`, que devolve URL assinada. S A
+- E-45 `POST {c}/report-exports`: exportação assíncrona PDF/Excel (XLSX). Responde 202; consulta em `/report-exports/{id}`, que devolve URL assinada. S A
 
 ### Visão da rede (superuser)
 - E-46 `GET /network/dashboard`: situação por clínica e consolidado. S
@@ -164,6 +170,13 @@ Perfis: **S** superuser, **A** administrador, **AL** almoxarife. O superuser lê
 - E-52 `PUT /roles/{role}/permissions`: substitui permissões de um perfil. S
 - E-53 `GET /settings`: `safetyMarginPercent`, `highWithdrawalMultiplier`, `consumptionDropPercent`, `incorrectReceiptDeadlineDays` (45). S
 - E-54 `PUT /settings`: altera os parâmetros. S
+
+### Visão orçamentária (novo na 0.12)
+Valores em reais só para o controlador e para o superuser com a chave ligada (RN-15); o servidor não entrega valores a quem não tem o escopo (RNF-05).
+- E-57 `GET {c}/budget/summary`: valor em estoque (com lotes vencidos até o descarte), valor perdido dos últimos 30 dias sem estornos e consumo, em reais (V2-RF-44). C, S com a chave
+- E-58 `GET {c}/budget/valuation`: valoração por insumo e por categoria; insumo sem custo vale zero (V2-RF-44). C, S com a chave
+- E-59 `PUT {c}/items/{id}/cost`: custo unitário de referência; cada mudança vai para a trilha de auditoria (V2-RF-43). C
+- E-60 `PUT /me/budget-view`: liga ou desliga a visão orçamentária do superuser (V2-RF-45). S
 
 ### Serviço (interno)
 - E-55 `PUT /internal/clinics/{clinicId}`: provisiona o tenant (consumidor de `org.clinic.created`).
@@ -187,19 +200,22 @@ CloudEvents 1.0 com extensões `clinicid` e `correlationid`. Entrega pelo menos 
 
 ### Escopos (padrão, configurável via E-52)
 
-| Escopo | Permite | S | A | AL |
-|---|---|---|---|---|
-| `stock:read` | Consultar saldo, lotes, movimentações, painel, alertas | ✓ | ✓ | ✓ |
-| `stock:network:read` | Visão consolidada | ✓ | | |
-| `stock:withdraw` | Saídas e devoluções | | ✓ | ✓ |
-| `stock:receive` | Entradas, estorno de nota, recebimentos incorretos | | ✓ | ✓ |
-| `stock:adjust` | Ajuste de inventário | | ✓ | ✓ |
-| `stock:reverse` | Estornar movimentações | | ✓ | ✓ |
-| `stock:catalog:write` | Insumos, categorias, pacotes | | ✓ | |
-| `stock:reports` | Relatórios, curva ABC, exportações | ✓ | ✓ | |
-| `stock:audit` | Trilha de auditoria | ✓ | ✓ | |
-| `stock:admin` | Permissões e parâmetros | ✓ | | |
-| `stock:service` | Uso entre serviços | serviço | serviço | serviço |
+| Escopo | Permite | S | A | AL | C |
+|---|---|---|---|---|---|
+| `stock:read` | Consultar saldo, lotes, movimentações, painel, alertas | ✓ | ✓ | ✓ |  |
+| `stock:network:read` | Visão consolidada | ✓ |  |  |  |
+| `stock:withdraw` | Saídas e devoluções |  | ✓ | ✓ |  |
+| `stock:receive` | Entradas, estorno de nota, recebimentos incorretos |  | ✓ | ✓ |  |
+| `stock:adjust` | Ajuste de inventário |  | ✓ | ✓ |  |
+| `stock:reverse` | Estornar movimentações |  | ✓ | ✓ |  |
+| `stock:catalog:write` | Insumos, categorias, pacotes |  | ✓ |  |  |
+| `stock:reports` | Relatórios, curva ABC, exportações | ✓ | ✓ |  |  |
+| `stock:audit` | Trilha de auditoria | ✓ | ✓ |  |  |
+| `stock:admin` | Permissões e parâmetros | ✓ |  |  |  |
+| `stock:budget:read` | Telas monetárias da clínica | com chave |  |  | ✓ |
+| `stock:budget:cost:write` | Custo unitário de referência |  |  |  | ✓ |
+| `stock:budget:switch` | Ligar a visão orçamentária | ✓ |  |  |  |
+| `stock:service` | Uso entre serviços | serviço | serviço | serviço |  |
 
 ### Proteção de dados
 - Do usuário, o Estoque guarda só ID, nome e perfil (cache do IAM).
@@ -237,7 +253,7 @@ CloudEvents 1.0 com extensões `clinicid` e `correlationid`. Entrega pelo menos 
 - **Backup (RNF-07):** automático, com restauração testada. RPO/RTO a definir pela plataforma.
 - **Desempenho (RNF-08):** p95 ≤ 1,0 s no servidor. Relatórios pesados e PDFs assíncronos (202). Varredura diária fora do horário das clínicas.
 - **Rede instável (RNF-09):** respostas enxutas e idempotência para reenvio.
-- **Manutenção (RNF-10):** fora do horário das clínicas (a definir); leitura segue disponível.
+- **Manutenção (RNF-10):** aos domingos, das 0h às 4h (America/Recife), fora do horário das clínicas; leitura segue disponível.
 - **Nova clínica (RNF-11):** entra pelo evento `org.clinic.created`, sem alteração de código. Categorias começam vazias.
 
 ### Módulo fora do ar
@@ -254,18 +270,22 @@ CloudEvents 1.0 com extensões `clinicid` e `correlationid`. Entrega pelo menos 
 
 Timeout padrão para outros módulos: 2 s, com 2 novas tentativas e circuit breaker após 5 falhas seguidas.
 
-## 9. Decisões em aberto
+## 9. Decisões adotadas
 
-- **D1** Dono de usuários e permissões. Recomendado: IAM guarda usuário, perfil e vínculo; Estoque guarda o mapa perfil → escopos.
-- **D2** Caixa de entrada e preferências. Recomendado: na plataforma.
-- **D3** Catálogo de insumos. Recomendado: Estoque; Solicitações referencia por `itemId` e assina `stock.item.*`.
-- **D4** Baixa por procedimento. Recomendado: proposta pendente confirmada ou ajustada pelo usuário, com confirmação automática opcional por clínica.
-- **D5** Dono do cadastro de fornecedores. Hoje é texto livre nos recebimentos incorretos; com módulo de Compras, vira `supplierId`.
-- **D6** Barramento de eventos. Assumido CloudEvents, pelo menos uma vez, com ordenação por chave e fila de descarte.
-- **D7** Auditoria central e retenção. Se não existir, o Estoque mantém a trilha sozinho e A7 sai.
-- **D8** Valores monetários. Não há; se necessários, virão de outro módulo (D10).
-- **D9** SLAs entre módulos e janela de manutenção. Definir com a operação das clínicas.
-- **D10** Estoque orçamentário. Conversar com a gestão antes de qualquer desenho (N-13).
-- **D11** Empréstimo com prazo e controle de retorno. Hoje só registra destinatário e baixa saldo.
-- **D12** "Editar categorias por clínica" assumido como categorias de insumo; as nove categorias de movimentação são fixas.
-- **D13** Quem notifica a empresa fornecedora nos recebimentos incorretos. Hoje o Estoque só registra a data informada.
+Na versão 0.12 todas as decisões em aberto foram fechadas seguindo a recomendação do contrato. Se a plataforma contrariar alguma, a plataforma prevalece e o contrato é ajustado.
+
+- **D1** Dono de usuários e permissões: o IAM guarda usuário, perfil e vínculo com clínica e os informa pelo token (claims `profile` e `clinic_ids`) e pelos eventos `iam.user.*`. O Estoque guarda o mapa perfil → escopos (RF-03) e um cache de id, nome e perfil. Não cria usuários.
+- **D2** Caixa de entrada e preferências: na plataforma (A5). O Estoque só produz os alertas; não há rotas de caixa de entrada nem de preferências no Estoque. A tela de Notificações lê a plataforma por um adaptador, simulado até a API existir.
+- **D3** Catálogo de insumos: do Estoque, com o código gerado por ele; Solicitações referencia por `itemId` e assina `stock.item.*`.
+- **D4** Baixa por procedimento: proposta pendente que o usuário confirma ou ajusta, com a confirmação automática ligável por clínica (`autoConfirmProcedureConsumption`, desligada por padrão).
+- **D5** Fornecedores: sem dono por enquanto; a empresa é texto livre (`supplier`) nos recebimentos incorretos. Com módulo de Compras, vira `supplierId`.
+- **D6** Barramento de eventos: CloudEvents, pelo menos uma vez. O Estoque publica pela outbox, consome com deduplicação por `id` (`processed_events`) e, depois de 5 falhas com espera crescente, move o evento para a fila de descarte (`dead_letter_events`). Até a plataforma oferecer barramento, o despacho é simulado.
+- **D7** Auditoria central: assume-se que não existe. O Estoque mantém a própria trilha por 5 anos e A7 sai. Se a plataforma criar a auditoria central, o Estoque passa a replicar para ela.
+- **D8** Valores monetários: nesta fase vivem no Estoque, como custo unitário de referência por insumo (requisitos v2.0), mantido pelo controlador. Painéis e relatórios comuns seguem sem valores; só a visão orçamentária (E-57 a E-60) mostra reais. A curva ABC continua por quantidade.
+- **D9** SLAs e janela de manutenção: manutenção aos domingos, 0h às 4h (America/Recife); timeouts e novas tentativas como na seção 8; disponibilidade alvo de 99,5% no horário das clínicas. Ajustar quando a operação informar o horário real.
+- **D10** Estoque orçamentário: sem módulo financeiro, o Estoque entrega a visão orçamentária com custo de referência por insumo, sem orçamento previsto e sem custo por lote. Com módulo financeiro, o custo passa a vir dele.
+- **D11** Empréstimo: só registra o destinatário e baixa o saldo, sem prazo nem controle de retorno.
+- **D12** "Editar categorias por clínica": são as categorias de insumo; as nove de movimentação são fixas.
+- **D13** Notificação à empresa fornecedora: feita pela equipe da clínica, fora do sistema. O Estoque registra a data informada e alerta aos 45 dias.
+
+**Próximos passos:** ligar o token do IAM ao módulo (E0-H4) e trocar os adaptadores simulados (A1 a A6) pelas integrações reais quando existirem; publicar o OpenAPI gerado pela API (`openapi.json`); escrever testes de contrato para baixa por execução (A3), nota de recebimento (A4) e alertas (A5); renumerar os identificadores RF para a numeração da v2.0.

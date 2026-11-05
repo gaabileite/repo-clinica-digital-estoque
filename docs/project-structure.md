@@ -68,10 +68,10 @@ Cada script agrupa subcomandos relacionados; os comandos do `package.json` (`pnp
 | Arquivo | Para quê |
 | --- | --- |
 | `README.md` | Índice da documentação. |
-| `api-contract.md` | Contrato de APIs v0.11: APIs consumidas e expostas, eventos, segurança e erros. Pode ser compartilhado com o cliente. |
+| `api-contract.md` | Contrato de APIs v0.12: APIs consumidas e expostas, eventos, segurança, erros e as decisões adotadas. Pode ser compartilhado com o cliente. |
 | `architecture.md` | Como o módulo se encaixa no shell, como o código está organizado, o que está pronto ou é esqueleto e as decisões adotadas. |
 | `backlog.md` | Épicos e histórias com critérios de aceite. Interno. |
-| `requirements.md` | Requisitos v2.0: funcionais, regras de negócio, não funcionais, escopo e pontos em aberto. Pode ser compartilhado com o cliente. |
+| `requirements.md` | Requisitos v2.1: funcionais, regras de negócio, não funcionais, escopo e as decisões dos pontos em aberto. Pode ser compartilhado com o cliente. |
 | `sprint-planning.md` | Planejamento básico das sprints, capacidade, rituais e modelo. Interno. |
 
 ## API (`apps/api/`)
@@ -85,7 +85,7 @@ Configuração, banco e testes:
 | `package.json` | Dependências e comandos da API (`build`, `dev`, `test`, `test:e2e`, `prisma:generate`). |
 | `prisma/migrations/20261105000000_initial_schema/migration.sql` | Migration inicial, gerada do esquema (19 tabelas). |
 | `prisma/migrations/migration_lock.toml` | Trava o provedor de banco das migrations (PostgreSQL). Gerado pelo Prisma. |
-| `prisma/schema.prisma` | Esquema do banco: clínicas, insumos, lotes, livro de movimentações, notas, alertas, auditoria, outbox e outros. |
+| `prisma/schema.prisma` | Esquema do banco: clínicas, insumos, lotes, livro de movimentações, notas, alertas, auditoria, outbox, fila de descarte e outros (19 tabelas). |
 | `prisma/seed.mjs` | Seed de desenvolvimento: parâmetros padrão e três clínicas de demonstração. |
 | `test/health.e2e-spec.ts` | Teste e2e sem banco: `/health/live` abre e rota de negócio sem login devolve 401. |
 | `tsconfig.build.json` | TypeScript do build: exclui os testes. |
@@ -112,7 +112,7 @@ Pastas de apoio:
 | `access/access.decorators.ts` | `@Public()`, `@RequirePermissions(...)` e `@CurrentAuth()`. |
 | `access/access.module.ts` | Liga os dois guards a todas as rotas. |
 | `access/auth-context.ts` | Tipo de quem chama: usuário, perfil, clínicas e chave de visão orçamentária. |
-| `access/auth.guard.ts` | Identifica o chamador. Hoje só aceita a autenticação de desenvolvimento por cabeçalhos; a real repassa o cookie ao `/auth/me` do shell (ver `architecture.md`). |
+| `access/auth.guard.ts` | Identifica o chamador. Hoje só aceita a autenticação de desenvolvimento por cabeçalhos; a real valida o token JWT do IAM (ver `architecture.md`). |
 | `access/permissions.guard.ts` | Confere o escopo exigido pela rota e o vínculo do usuário com a clínica (`STOCK_CLINIC_FORBIDDEN`). |
 | `access/permissions.spec.ts` | Testes da matriz (por exemplo, o Controlador não opera o estoque). |
 | `access/permissions.ts` | Escopos `stock:*` e a matriz padrão de permissões por perfil. |
@@ -167,14 +167,13 @@ Cada pasta tem o mesmo desenho: `<nome>.controller.ts` (rotas, com permissão e 
 | `receipts/` | Entradas, notas de recebimento, estorno da nota e requisições abertas | RF-18, RF-21 a RF-24 | 6 |
 | `incorrect-receipts/` | Recebimentos incorretos: troca, incorporação e descarte | RF-25 | 5 |
 | `alerts/` | Alertas vigentes (nível crítico, validade e uso) | RF-26 a RF-28 | 1 |
-| `notifications/` | Central de notificações e preferências (fora do contrato v0.11) | RF-29, RF-30 | 5 |
 | `dashboard/` | Painel de controle | RF-37 | 2 |
 | `reports/` | Relatórios e exportação | RF-38 a RF-41 | 5 |
 | `network/` | Visão consolidada da rede (Superuser) | RF-34 | 4 |
 | `audit/` | Trilha de auditoria | RF-36 | 1 |
 | `permissions/` | Permissões por perfil | RF-03 | 3 |
 | `settings/` | Parâmetros de cálculo e de alerta | RF-04 | 2 |
-| `budget/` | Visão orçamentária e custo unitário (fora do contrato v0.11) | RF-42 a RF-45 | 4 |
+| `budget/` | Visão orçamentária e custo unitário (novo no contrato 0.12) | RF-42 a RF-45 | 4 |
 | `internal/` | Rotas entre serviços: provisionar clínica e varredura diária | RF-01 | 2 |
 
 Corpos validados (`dto/`):
@@ -239,7 +238,7 @@ Cada pasta tem `<Nome>Page.tsx` (a tela, hoje com o estado "Em construção"), `
 | `reports/` | Relatórios | RF-38 a RF-41 |
 | `registrations/` | Cadastros | RF-05 a RF-08, RF-43 |
 | `settings/` | Configurações | RF-03, RF-04 |
-| `notifications/` | Notificações | RF-26 a RF-32 |
+| `notifications/` | Notificações (caixa de entrada da plataforma) | RF-26 a RF-32 |
 | `budget/` | Visão orçamentária | RF-42 a RF-45 |
 
 O cliente gerado em `src/lib/api-client/models/` tem 10 arquivos de tipos criados pelo Orval; não edite.

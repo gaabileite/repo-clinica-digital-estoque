@@ -2,8 +2,8 @@
 
 | Documento | Para quê |
 | --- | --- |
-| [requirements.md](requirements.md) | Requisitos funcionais, regras de negócio e não funcionais (v2.0) |
-| [api-contract.md](api-contract.md) | Contrato de APIs (v0.11, rascunho): consumidas e expostas, eventos, erros |
+| [requirements.md](requirements.md) | Requisitos funcionais, regras de negócio e não funcionais (v2.1) |
+| [api-contract.md](api-contract.md) | Contrato de APIs (v0.12, rascunho): consumidas e expostas, eventos, erros e decisões adotadas |
 | [project-structure.md](project-structure.md) | O que existe em cada pasta e arquivo do repositório |
 | [architecture.md](architecture.md) | Como o módulo se encaixa no shell, como o código está organizado e as decisões adotadas |
 | [backlog.md](backlog.md) | Épicos e histórias com critérios de aceite (uso interno) |

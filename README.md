@@ -2,7 +2,7 @@
 
 Módulo de controle de estoque e insumos da Clínica Digital UFPE (NUTES × CIn/UFPE): micro frontend (`suppliesMfe`) e API próprios, integrados ao shell da plataforma.
 
-Estado: requisitos v2.0 e contrato de APIs v0.11 em validação; esqueleto do código pronto, sem as funcionalidades. Ver `docs/`.
+Estado: requisitos v2.1 e contrato de APIs v0.12 com as decisões em aberto fechadas; esqueleto do código pronto, sem as funcionalidades. Ver `docs/`.
 
 ## O que há aqui
 

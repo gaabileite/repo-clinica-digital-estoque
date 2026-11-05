@@ -16,6 +16,7 @@ Este documento descreve os requisitos para o desenvolvimento do módulo de softw
 
 - 1.0 (outubro de 2026): documento original, com 42 requisitos funcionais (IDs repetidos), 11 requisitos não funcionais e 6 pontos em aberto.
 - 2.0 (outubro de 2026): requisitos reorganizados e renumerados, inconsistências da v1 corrigidas, decisões da reunião de 22/10/2026 e mudanças pedidas na validação do protótipo incorporadas (perfil Almoxarife, nível crítico de 0 a 10, devolução, recebimentos incorretos, alertas de uso, estoque orçamentário e outras).
+- 2.1 (novembro de 2026): decisões adotadas para os pontos em aberto da seção 6. Nenhum requisito mudou.
 
 ### 1.1. Visão geral deste documento
 
@@ -545,20 +546,20 @@ Itens que existiam na versão 1.0 ou foram cogitados e que não fazem parte dest
 - Gestão de senhas: Recuperação e alteração de senha, bloqueio por tentativas e expiração de sessão.
 - Padrão de antecedência de validade por categoria: Hoje a antecedência é definida por insumo.
 
-## 6. Pontos em aberto
+## 6. Pontos em aberto e decisões adotadas
 
-1. O estoque orçamentário atende à gestão? O protótipo usa um custo unitário de referência por insumo, mantido pelo Controlador. Falta definir se o custo vem da nota fiscal, se varia por lote e se o orçamento previsto por clínica entra neste módulo.
-2. O Controlador precisa de alguma ação além de consultar e editar o custo? Hoje ele não aprova compras nem registra movimentações. Definir se deve, por exemplo, aprovar o custo ou exportar para o setor financeiro.
-3. Empréstimo precisa de prazo e controle de retorno? Hoje o empréstimo registra só o destinatário. A devolução existente é para item retirado e não utilizado.
-4. "Editar categorias por clínica" refere-se às categorias de insumo? Assumido que sim. As categorias de movimentação são fixas (nove).
-5. Quem notifica a empresa nos recebimentos incorretos? O sistema registra a data da notificação, mas não a envia. Definir quem faz o contato e se o sistema deve apoiar.
-6. Qual a margem de segurança do nível crítico? Padrão de 20%, ajustável. Sugestão: calibrar com 60 dias de dados reais.
-7. Com quantos dias de antecedência alertar a validade, e isso varia por categoria? Hoje é definido por insumo. Falta decidir se haverá padrão por categoria.
-8. Quais campos do sistema de solicitações estão disponíveis para a integração? O protótipo simula número do pedido, data e itens.
-9. O controle por lote é viável na rotina atual? Opcional por insumo; o sistema sugere o lote de validade mais próxima. Sugestão: tornar obrigatório só para itens de validade crítica e medir o tempo de registro.
-10. Quem baixa os lotes vencidos? Hoje é manual, com atalho para descartar todos de uma vez. Definir se deve ser automático.
-11. Qual a frequência do resumo periódico de notificações? Ainda não definida.
-12. A transferência entre clínicas precisará de aprovação do Superuser? Pergunta mantida para a fase futura.
+1. O estoque orçamentário atende à gestão? O protótipo usa um custo unitário de referência por insumo, mantido pelo Controlador. Falta definir se o custo vem da nota fiscal, se varia por lote e se o orçamento previsto por clínica entra neste módulo. Decisão adotada: custo unitário de referência por insumo, mantido pelo Controlador; sem orçamento previsto por clínica e sem custo por lote.
+2. O Controlador precisa de alguma ação além de consultar e editar o custo? Hoje ele não aprova compras nem registra movimentações. Definir se deve, por exemplo, aprovar o custo ou exportar para o setor financeiro. Decisão adotada: o Controlador consulta as telas monetárias, edita o custo e exporta as telas em PDF e Excel; não aprova compras nem registra movimentações.
+3. Empréstimo precisa de prazo e controle de retorno? Hoje o empréstimo registra só o destinatário. A devolução existente é para item retirado e não utilizado. Decisão adotada: o empréstimo só registra o destinatário, sem prazo nem controle de retorno.
+4. "Editar categorias por clínica" refere-se às categorias de insumo? Assumido que sim. As categorias de movimentação são fixas (nove). Decisão adotada: são as categorias de insumo.
+5. Quem notifica a empresa nos recebimentos incorretos? O sistema registra a data da notificação, mas não a envia. Definir quem faz o contato e se o sistema deve apoiar. Decisão adotada: a equipe da clínica faz o contato fora do sistema; o sistema registra a data e alerta aos 45 dias.
+6. Qual a margem de segurança do nível crítico? Padrão de 20%, ajustável. Sugestão: calibrar com 60 dias de dados reais. Decisão adotada: 20%, ajustável pelo Superuser; rever com 60 dias de dados reais.
+7. Com quantos dias de antecedência alertar a validade, e isso varia por categoria? Hoje é definido por insumo. Falta decidir se haverá padrão por categoria. Decisão adotada: por insumo, com padrão de 30 dias; sem padrão por categoria.
+8. Quais campos do sistema de solicitações estão disponíveis para a integração? O protótipo simula número do pedido, data e itens. Decisão adotada: campos mínimos (número, data e itens) por um adaptador simulado até a integração.
+9. O controle por lote é viável na rotina atual? Opcional por insumo; o sistema sugere o lote de validade mais próxima. Sugestão: tornar obrigatório só para itens de validade crítica e medir o tempo de registro. Decisão adotada: controle por lote opcional por insumo e recomendado para os que têm validade.
+10. Quem baixa os lotes vencidos? Hoje é manual, com atalho para descartar todos de uma vez. Definir se deve ser automático. Decisão adotada: baixa manual, com atalho para descartar todos de uma vez.
+11. Qual a frequência do resumo periódico de notificações? Ainda não definida. Decisão adotada: o resumo é função da plataforma de notificações; padrão semanal, na segunda-feira.
+12. A transferência entre clínicas precisará de aprovação do Superuser? Pergunta mantida para a fase futura. Decisão adotada: fora desta fase; sem fluxo de aprovação definido.
 
 ## Anexo A. Perfis, permissões e telas
 
