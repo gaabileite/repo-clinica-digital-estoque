@@ -4,6 +4,7 @@
 | --- | --- |
 | [requirements.md](requirements.md) | Requisitos funcionais, regras de negócio e não funcionais (v2.0) |
 | [api-contract.md](api-contract.md) | Contrato de APIs (v0.11, rascunho): consumidas e expostas, eventos, erros |
+| [project-structure.md](project-structure.md) | O que existe em cada pasta e arquivo do repositório |
 | [architecture.md](architecture.md) | Como o módulo se encaixa no shell e como o código está organizado |
 | [backlog.md](backlog.md) | Épicos e histórias com critérios de aceite (uso interno) |
 | [sprint-planning.md](sprint-planning.md) | Planejamento básico das primeiras sprints (uso interno) |
