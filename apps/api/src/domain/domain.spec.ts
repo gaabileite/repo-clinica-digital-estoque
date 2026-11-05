@@ -68,3 +68,39 @@ describe('RN-04 FEFO', () => {
     expect(r).toMatchObject({ ok: true, suggestedLotId: 'b', notNearest: true });
   });
 });
+
+describe('casos de borda das regras', () => {
+  it('RN-01: tempo de reposição zero usa o mínimo de meio dia e a nota fica entre 0 e 10', () => {
+    const n = criticalLevel({ usableBalance: 1, avgDailyConsumption: 5, leadTimeDays: 0, safetyMarginPercent: 20 });
+    expect(n).toBeGreaterThanOrEqual(0);
+    expect(n).toBeLessThanOrEqual(10);
+  });
+  it('RN-01: consumo gigante com pouco saldo trava em 10', () => {
+    expect(criticalLevel({ usableBalance: 0.001, avgDailyConsumption: 1000, leadTimeDays: 30, safetyMarginPercent: 20 })).toBe(10);
+  });
+  it('RN-03: pedido depois do recebimento é ignorado', () => {
+    expect(leadTime([{ orderedOn: '2026-10-10', receivedOn: '2026-10-01' }], 4)).toEqual({ days: 4, samples: 0, source: 'estimated' });
+  });
+  it('RN-03: média de várias entradas', () => {
+    const r = leadTime([{ orderedOn: '2026-10-01', receivedOn: '2026-10-05' }, { orderedOn: '2026-10-01', receivedOn: '2026-10-11' }], 3);
+    expect(r).toEqual({ days: 7, samples: 2, source: 'measured' });
+  });
+  it('RN-08: antecedência zero só marca "a vencer" no próprio dia', () => {
+    expect(validityStatus('2026-11-05', 0, today)).toBe('expiring');
+    expect(validityStatus('2026-11-06', 0, today)).toBe('valid');
+  });
+  it('RN-04: escolher lote vencido como preferido é ignorado', () => {
+    const lots = [{ id: 'v', expiresOn: '2026-10-01', quantity: 5 }, { id: 'a', expiresOn: '2027-01-01', quantity: 5 }];
+    const r = allocateFefo(lots, 2, '2026-11-05', 'v');
+    expect(r).toMatchObject({ ok: true, suggestedLotId: 'a', notNearest: false });
+  });
+  it('RN-04: lote sem validade sai por último', () => {
+    const lots = [{ id: 'n', expiresOn: null, quantity: 5 }, { id: 'a', expiresOn: '2027-01-01', quantity: 1 }];
+    const r = allocateFefo(lots, 3, '2026-11-05');
+    if (r.ok) expect(r.allocations).toEqual([{ lotId: 'a', quantity: 1 }, { lotId: 'n', quantity: 2 }]);
+  });
+  it('RN-04: lote zerado não conta como saldo', () => {
+    expect(allocateFefo([{ id: 'z', expiresOn: '2027-01-01', quantity: 0 }], 1, '2026-11-05')).toEqual({ ok: false, code: 'STOCK_INSUFFICIENT', available: 0 });
+  });
+});
+

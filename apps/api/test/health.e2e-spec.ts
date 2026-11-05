@@ -26,4 +26,13 @@ describe('health (e2e)', () => {
     await request(app.getHttpServer()).get('/clinics/x/items').expect(401);
     await app.close();
   });
+
+  it.skipIf(!process.env.TEST_DATABASE_URL)('GET /health/ready confere o banco de verdade', async () => {
+    process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const app = moduleRef.createNestApplication();
+    await app.init();
+    await request(app.getHttpServer()).get('/health/ready').expect(200, { status: 'ready', checks: { database: 'up' } });
+    await app.close();
+  });
 });

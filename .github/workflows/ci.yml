@@ -12,6 +12,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: estoque_test
+          POSTGRES_USER: estoque
+          POSTGRES_PASSWORD: estoque_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U estoque -d estoque_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://estoque:estoque_ci_password@localhost:5432/estoque_test?schema=public
+      TEST_DATABASE_URL: postgresql://estoque:estoque_ci_password@localhost:5432/estoque_test?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,7 +39,11 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - name: API e2e (sem banco)
+      - name: Migrations e seed no banco de teste
+        run: |
+          pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
+          pnpm --dir apps/api exec node prisma/seed.mjs
+      - name: API e2e (com banco)
         run: pnpm --dir apps/api test:e2e
       - name: Contrato OpenAPI e cliente em sincronia
         run: |
