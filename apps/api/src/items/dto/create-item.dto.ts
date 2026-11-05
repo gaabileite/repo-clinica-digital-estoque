@@ -1,36 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 /**
  * Corpo de POST /clinics/{clinicId}/items (E-02, RF-05).
- * Os nomes seguem o contrato v0.11, que mistura português e inglês nos campos; padronizar na v0.12.
+ * Nomes em inglês (o contrato v0.11 usava `nome`, `controlaLoteValidade` etc.; padronizado na v0.12).
  */
 export class CreateItemDto {
   @ApiProperty({ example: 'Luva de procedimento M (cx 100)' })
   @IsString() @IsNotEmpty()
-  nome!: string;
+  name!: string;
 
   @ApiProperty({ description: 'Categoria de insumo da clínica (RF-06).' })
-  @IsString() @IsNotEmpty()
-  categoria!: string;
+  @IsUUID()
+  categoryId!: string;
 
   @ApiProperty({ example: 'cx' })
   @IsString() @IsNotEmpty()
-  unidade!: string;
+  unit!: string;
 
   @ApiPropertyOptional({ description: 'Se registra temperatura de armazenamento.' })
   @IsOptional() @IsBoolean()
-  registraTemperatura?: boolean;
+  recordsTemperature?: boolean;
+
+  @ApiPropertyOptional({ example: '2 a 8 °C', description: 'Faixa de temperatura, quando registra temperatura.' })
+  @IsOptional() @IsString()
+  temperatureRange?: string;
 
   @ApiProperty({ description: 'Controle de lote e validade (opcional por insumo).' })
   @IsBoolean()
-  controlaLoteValidade!: boolean;
+  tracksLotAndExpiry!: boolean;
 
   @ApiProperty({ example: 7, description: 'Tempo de reposição estimado, em dias (RN-03).' })
   @IsInt() @Min(0)
-  tempoReposicaoEstimadoDias!: number;
+  estimatedLeadTimeDays!: number;
 
-  @ApiPropertyOptional({ example: 30, description: 'Antecedência do alerta de validade, em dias (RF-08).' })
+  @ApiPropertyOptional({ example: 30, default: 30, description: 'Antecedência do alerta de validade, em dias (RF-08).' })
   @IsOptional() @IsInt() @Min(0)
-  antecedenciaAlertaValidadeDias?: number;
+  expiryAlertLeadDays?: number;
 }

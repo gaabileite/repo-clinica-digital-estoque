@@ -4,7 +4,7 @@ import type { PublishedEvent } from './event-types';
 
 /**
  * Publica eventos de domínio.
- * TODO(ADR-001): gravar na tabela outbox_events na mesma transação da movimentação e despachar depois.
+ * TODO(E4-H1): gravar na tabela outbox_events na mesma transação da movimentação e despachar depois.
  */
 @Injectable()
 export class EventPublisher {

@@ -1,4 +1,4 @@
-// Esquema inicial do módulo Estoque e insumos (rascunho para revisão, ver docs/decisions/ADR-001).
+// Esquema inicial do módulo Estoque e insumos (decisões de saldo e eventos em docs/architecture.md).
 // Princípios (RNF-14): a clínica é dimensão de todo registro; lote e validade ficam em cada movimentação.
 // Quantidades em Decimal(14,3); valores em reais em Decimal(14,2).
 

@@ -7,16 +7,18 @@
  */
 
 export interface CreateItemDto {
-  nome: string;
+  name: string;
   /** Categoria de insumo da clínica (RF-06). */
-  categoria: string;
-  unidade: string;
+  categoryId: string;
+  unit: string;
   /** Se registra temperatura de armazenamento. */
-  registraTemperatura?: boolean;
+  recordsTemperature?: boolean;
+  /** Faixa de temperatura, quando registra temperatura. */
+  temperatureRange?: string;
   /** Controle de lote e validade (opcional por insumo). */
-  controlaLoteValidade: boolean;
+  tracksLotAndExpiry: boolean;
   /** Tempo de reposição estimado, em dias (RN-03). */
-  tempoReposicaoEstimadoDias: number;
+  estimatedLeadTimeDays: number;
   /** Antecedência do alerta de validade, em dias (RF-08). */
-  antecedenciaAlertaValidadeDias?: number;
+  expiryAlertLeadDays?: number;
 }

@@ -9,7 +9,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get<AppConfig>(APP_CONFIG);
 
-  // O shell encaminha /api/v1/supplies para o módulo (ver ADR-002 sobre o prefixo do contrato).
+  // O shell encaminha /api/v1/supplies para o módulo (o contrato v0.11 usa /stock/v1; a v0.12 registra a diferença).
   app.setGlobalPrefix('api/v1', { exclude: ['health', 'health/(.*)'] });
 
   app.useGlobalPipes(

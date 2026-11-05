@@ -1,6 +1,6 @@
 /**
  * Mutator do Orval: todas as chamadas geradas passam por aqui.
- * TODO(ADR-002): enviar a credencial do usuário (cookie do shell ou token) e tratar 401.
+ * O cookie de sessão do shell segue com `credentials: include` (o shell encaminha /api/v1/supplies). TODO: tratar 401.
  * Em desenvolvimento, os cabeçalhos x-dev-* simulam o usuário (a API só os aceita com DEV_AUTH_ENABLED=true).
  */
 export class ApiError extends Error {

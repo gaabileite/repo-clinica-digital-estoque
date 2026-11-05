@@ -1899,43 +1899,49 @@
       "CreateItemDto": {
         "type": "object",
         "properties": {
-          "nome": {
+          "name": {
             "type": "string",
             "example": "Luva de procedimento M (cx 100)"
           },
-          "categoria": {
+          "categoryId": {
             "type": "string",
             "description": "Categoria de insumo da clínica (RF-06)."
           },
-          "unidade": {
+          "unit": {
             "type": "string",
             "example": "cx"
           },
-          "registraTemperatura": {
+          "recordsTemperature": {
             "type": "boolean",
             "description": "Se registra temperatura de armazenamento."
           },
-          "controlaLoteValidade": {
+          "temperatureRange": {
+            "type": "string",
+            "example": "2 a 8 °C",
+            "description": "Faixa de temperatura, quando registra temperatura."
+          },
+          "tracksLotAndExpiry": {
             "type": "boolean",
             "description": "Controle de lote e validade (opcional por insumo)."
           },
-          "tempoReposicaoEstimadoDias": {
+          "estimatedLeadTimeDays": {
             "type": "number",
             "example": 7,
             "description": "Tempo de reposição estimado, em dias (RN-03)."
           },
-          "antecedenciaAlertaValidadeDias": {
+          "expiryAlertLeadDays": {
             "type": "number",
             "example": 30,
+            "default": 30,
             "description": "Antecedência do alerta de validade, em dias (RF-08)."
           }
         },
         "required": [
-          "nome",
-          "categoria",
-          "unidade",
-          "controlaLoteValidade",
-          "tempoReposicaoEstimadoDias"
+          "name",
+          "categoryId",
+          "unit",
+          "tracksLotAndExpiry",
+          "estimatedLeadTimeDays"
         ]
       },
       "CreateWithdrawalDto": {

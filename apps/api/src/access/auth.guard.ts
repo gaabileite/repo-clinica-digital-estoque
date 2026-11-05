@@ -8,7 +8,8 @@ import { isProfile } from './profile';
 
 /**
  * Identifica o chamador.
- * TODO(ADR-002): validar o token JWT do IAM (ou a sessão do shell). Enquanto isso, só existe a
+ * TODO(E0-H4): repassar o cookie de sessão para `GET {shellApiUrl}/api/v1/auth/me` e montar o AuthContext
+ * com o perfil e as clínicas de `user_cache` (ver docs/architecture.md). Enquanto isso, só existe a
  * autenticação de desenvolvimento por cabeçalhos, desligada por padrão e proibida em produção.
  */
 @Injectable()
