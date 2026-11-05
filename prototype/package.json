@@ -1,0 +1,25 @@
+{
+  "name": "@clinicadigital/estoque-mfe-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Protótipo semifuncional do módulo Estoque e insumos, empacotado como MFE (remote) para o shell da Clínica Digital UFPE.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 5175 --strictPort",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@module-federation/vite": "1.23.4",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^5.8.3",
+    "vite": "^8.2.2"
+  }
+}
