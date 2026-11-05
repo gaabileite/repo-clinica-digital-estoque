@@ -11,3 +11,4 @@ apps/web/@mf-types
 apps/web/.__mf__temp
 prototype/dist/
 apps/web/.mf/
+*.tsbuildinfo
