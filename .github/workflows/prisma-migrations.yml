@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "apps/api/prisma/**"
-      - "scripts/db-check-migrations.mjs"
+      - "scripts/db.mjs"
       - "apps/api/package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/prisma-migrations.yml"
@@ -12,7 +12,7 @@ on:
     branches: [main]
     paths:
       - "apps/api/prisma/**"
-      - "scripts/db-check-migrations.mjs"
+      - "scripts/db.mjs"
       - "apps/api/package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/prisma-migrations.yml"

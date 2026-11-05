@@ -1,16 +1,36 @@
+// Funções comuns dos scripts: versões, ambiente, portas e execução de comandos.
+import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
 
+// ---------- versões de Node e pnpm ----------
+function getPnpmVersion() {
+  const match = (process.env.npm_config_user_agent ?? '').match(/pnpm\/(\d+\.\d+\.\d+)/);
+  if (match) return match[1];
+  try {
+    return execFileSync('pnpm', ['--version'], { encoding: 'utf8' }).trim();
+  } catch {
+    throw new Error('pnpm não foi encontrado. Execute `corepack enable` e instale a versão suportada do pnpm.');
+  }
+}
+
+export function validateRuntime() {
+  const nodeMajor = Number(process.versions.node.split('.')[0]);
+  if (nodeMajor < 24) {
+    throw new Error(`Versão incompatível do Node.js: ${process.versions.node}. Use Node.js >= 24.x.`);
+  }
+  const pnpmVersion = getPnpmVersion();
+  if (Number(pnpmVersion.split('.')[0]) !== 9) {
+    throw new Error(`Versão incompatível do pnpm: ${pnpmVersion}. Use pnpm 9.x.`);
+  }
+  return { node: process.versions.node, pnpm: pnpmVersion };
+}
+
+// ---------- variáveis de ambiente (.env) ----------
 const REQUIRED_KEYS = [
-  'NODE_ENV',
-  'API_PORT',
-  'WEB_PORT',
-  'SHELL_BASE_URL',
-  'POSTGRES_DB',
-  'POSTGRES_USER',
-  'POSTGRES_PASSWORD',
-  'POSTGRES_PORT',
-  'DATABASE_URL',
+  'NODE_ENV', 'API_PORT', 'WEB_PORT', 'SHELL_BASE_URL',
+  'POSTGRES_DB', 'POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_PORT', 'DATABASE_URL',
 ];
 
 export const rootDir = process.cwd();
@@ -99,4 +119,53 @@ export function validateEnv() {
   }
 
   return env;
+}
+
+// ---------- portas ----------
+export function checkPortAvailable(port, label) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        reject(new Error(`A porta ${port} já está em uso para ${label}. Ajuste o valor no .env ou encerre o processo que está ocupando a porta.`));
+        return;
+      }
+      reject(error);
+    });
+    server.once('listening', () => server.close(() => resolve()));
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+// ---------- execução de comandos ----------
+export function runCommand(command, args, options = {}) {
+  const isWindows = process.platform === 'win32';
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: 'inherit', shell: isWindows, ...options });
+    child.on('error', reject);
+    child.on('exit', (code, signal) => {
+      if (code === 0) return resolve();
+      reject(new Error(`${command} ${args.join(' ')} falhou com código ${code ?? 'null'}${signal ? ` (signal ${signal})` : ''}.`));
+    });
+  });
+}
+
+export async function runStep(label, command, args, options = {}) {
+  console.log(`→ ${label}`);
+  await runCommand(command, args, options);
+}
+
+/** Roda `commands[name]` e sai com erro legível; usado pelos scripts que têm vários subcomandos. */
+export async function dispatch(script, commands) {
+  const name = process.argv[2];
+  if (!commands[name]) {
+    console.error(`Uso: node scripts/${script} <${Object.keys(commands).join('|')}>`);
+    process.exit(1);
+  }
+  try {
+    await commands[name]();
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
 }

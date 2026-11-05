@@ -1,7 +1,5 @@
 import { spawn } from 'node:child_process';
-import { validateRuntime } from './lib/runtime.mjs';
-import { validateEnv } from './lib/env.mjs';
-import { checkPortAvailable } from './lib/ports.mjs';
+import { checkPortAvailable, validateEnv, validateRuntime } from './lib.mjs';
 
 const children = [];
 
