@@ -1,0 +1,2098 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "status": "live"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "status": "ready",
+                    "checks": {
+                      "database": "up"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Readiness, incluindo a conexão com o banco",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items": {
+      "get": {
+        "operationId": "ItemsController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Lista insumos (busca por código, categoria, situação) (E-01)",
+        "tags": [
+          "items"
+        ]
+      },
+      "post": {
+        "operationId": "ItemsController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cria insumo; o código INS-0001 é gerado pelo sistema (E-02)",
+        "tags": [
+          "items"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}": {
+      "get": {
+        "operationId": "ItemsController_detail",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Detalhe do insumo (E-03)",
+        "tags": [
+          "items"
+        ]
+      },
+      "patch": {
+        "operationId": "ItemsController_update",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Altera insumo (If-Match obrigatório; o código não muda) (E-04)",
+        "tags": [
+          "items"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/deactivate": {
+      "post": {
+        "operationId": "ItemsController_deactivate",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Inativa o insumo (nunca apaga se há saldo) (E-05)",
+        "tags": [
+          "items"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/reactivate": {
+      "post": {
+        "operationId": "ItemsController_reactivate",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Reativa o insumo (E-05)",
+        "tags": [
+          "items"
+        ]
+      }
+    },
+    "/api/v1/catalog/units": {
+      "get": {
+        "operationId": "ItemsController_units",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Lista de unidades de medida (E-06)",
+        "tags": [
+          "items"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/item-categories": {
+      "get": {
+        "operationId": "CategoriesController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Categorias de insumo da clínica, com nº de insumos (E-07)",
+        "tags": [
+          "categories"
+        ]
+      },
+      "post": {
+        "operationId": "CategoriesController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cria categoria (E-08)",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/item-categories/{categoryId}": {
+      "patch": {
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Renomeia ou inativa (recusa se há insumo ativo) (E-08)",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/packages": {
+      "get": {
+        "operationId": "PackagesController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Lista pacotes de insumos (E-09)",
+        "tags": [
+          "packages"
+        ]
+      },
+      "post": {
+        "operationId": "PackagesController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cria pacote com insumos e quantidades padrão (E-10)",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/packages/{packageId}": {
+      "patch": {
+        "operationId": "PackagesController_update",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "packageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Altera ou inativa pacote (E-11)",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/balances": {
+      "get": {
+        "operationId": "StockController_balances",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Saldo por insumo, nível crítico, cobertura e validade mais próxima (E-12)",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/lots": {
+      "get": {
+        "operationId": "StockController_lots",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Lotes com saldo em ordem de validade (FEFO) (E-13)",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/availability": {
+      "get": {
+        "operationId": "StockController_availability",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Disponibilidade para consumo e lote sugerido (E-14)",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/consumption-profile": {
+      "get": {
+        "operationId": "StockController_consumptionProfile",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Consumo médio de 30 dias e média aprendida (E-15)",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/lead-time": {
+      "get": {
+        "operationId": "StockController_leadTime",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Tempo de reposição medido ou estimado (E-33)",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/withdrawals": {
+      "post": {
+        "operationId": "WithdrawalsController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWithdrawalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Retirada pelo código do insumo, com lote sugerido pelo FEFO (E-18)",
+        "tags": [
+          "withdrawals"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/expired-lots/write-off": {
+      "post": {
+        "operationId": "WithdrawalsController_writeOffExpiredLots",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Baixa lotes vencidos como perda por validade (E-23)",
+        "tags": [
+          "withdrawals"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/procedure-consumptions/preview": {
+      "post": {
+        "operationId": "ProcedureConsumptionsController_preview",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Prévia da baixa de um pacote, sem baixar (E-19)",
+        "tags": [
+          "procedure-consumptions"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/procedure-consumptions": {
+      "post": {
+        "operationId": "ProcedureConsumptionsController_confirm",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Confirma a baixa de um pacote de insumos (E-20)",
+        "tags": [
+          "procedure-consumptions"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/pending-consumptions": {
+      "get": {
+        "operationId": "ProcedureConsumptionsController_listPending",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Baixas pendentes geradas por execuções de procedimento (E-21)",
+        "tags": [
+          "procedure-consumptions"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/pending-consumptions/{pendingId}/confirmation": {
+      "post": {
+        "operationId": "ProcedureConsumptionsController_confirmPending",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pendingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Confirma a proposta, com ajustes e justificativa (E-22)",
+        "tags": [
+          "procedure-consumptions"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/pending-consumptions/{pendingId}/dismissal": {
+      "post": {
+        "operationId": "ProcedureConsumptionsController_dismissPending",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pendingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Descarta a proposta, com motivo (E-22)",
+        "tags": [
+          "procedure-consumptions"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/returns": {
+      "post": {
+        "operationId": "ReturnsController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReturnDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Devolução de item retirado e não utilizado (E-24)",
+        "tags": [
+          "returns"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/movements": {
+      "get": {
+        "operationId": "MovementsController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Livro de movimentações (cursor, filtros) (E-39)",
+        "tags": [
+          "movements"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/movements/{movementId}/reversals": {
+      "post": {
+        "operationId": "MovementsController_reverse",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Estorna uma saída; o original permanece (E-25)",
+        "tags": [
+          "movements"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/lots/{lotId}/adjustments": {
+      "post": {
+        "operationId": "InventoryAdjustmentsController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Ajuste de inventário de um lote, com justificativa (E-26)",
+        "tags": [
+          "inventory-adjustments"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/receipts": {
+      "post": {
+        "operationId": "ReceiptsController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Registra a entrada e emite a nota de recebimento (E-27)",
+        "tags": [
+          "receipts"
+        ]
+      },
+      "get": {
+        "operationId": "ReceiptsController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Lista notas de recebimento (E-28)",
+        "tags": [
+          "receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/receipts/{receiptId}": {
+      "get": {
+        "operationId": "ReceiptsController_detail",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiptId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Detalhe da nota, linhas e divergências (E-29)",
+        "tags": [
+          "receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/receipts/{receiptId}/document": {
+      "get": {
+        "operationId": "ReceiptsController_document",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiptId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "PDF da nota (URL assinada do módulo de Arquivos) (E-30)",
+        "tags": [
+          "receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/receipts/{receiptId}/reversals": {
+      "post": {
+        "operationId": "ReceiptsController_reverse",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiptId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Pede o estorno da nota (409 se algum lote foi movimentado) (E-31)",
+        "tags": [
+          "receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/pending-requests": {
+      "get": {
+        "operationId": "ReceiptsController_pendingRequests",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Requisições em aberto para importar a data do pedido (E-32)",
+        "tags": [
+          "receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/incorrect-receipts": {
+      "get": {
+        "operationId": "IncorrectReceiptsController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Recebimentos incorretos, com prazo restante (E-34)",
+        "tags": [
+          "incorrect-receipts"
+        ]
+      },
+      "post": {
+        "operationId": "IncorrectReceiptsController_create",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Registra produto recebido incorretamente (E-35)",
+        "tags": [
+          "incorrect-receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/incorrect-receipts/{id}/exchange": {
+      "post": {
+        "operationId": "IncorrectReceiptsController_exchange",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Registra a troca pela empresa (E-36)",
+        "tags": [
+          "incorrect-receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/incorrect-receipts/{id}/incorporation": {
+      "post": {
+        "operationId": "IncorrectReceiptsController_incorporate",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Incorpora ao estoque após o prazo (gera entrada) (E-37)",
+        "tags": [
+          "incorrect-receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/incorrect-receipts/{id}/disposal": {
+      "post": {
+        "operationId": "IncorrectReceiptsController_discard",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Descarta após o prazo, com justificativa (E-38)",
+        "tags": [
+          "incorrect-receipts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/audit-trail": {
+      "get": {
+        "operationId": "AuditController_trail",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Trilha de auditoria do módulo (E-40)",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/alerts": {
+      "get": {
+        "operationId": "AlertsController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Condições de alerta vigentes do perfil (E-41)",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/dashboard": {
+      "get": {
+        "operationId": "DashboardController_summary",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Painel por perfil (E-16)",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/dashboard/weekly-consumption": {
+      "get": {
+        "operationId": "DashboardController_weeklyConsumption",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Consumo semanal de um insumo (E-17)",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/reports/consumption": {
+      "get": {
+        "operationId": "ReportsController_consumption",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Relatório de consumo (por insumo, clínica ou semana) (E-42)",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/reports/losses": {
+      "get": {
+        "operationId": "ReportsController_losses",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Perdas por validade e descartes por avaria (E-43)",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/reports/abc": {
+      "get": {
+        "operationId": "ReportsController_abc",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Curva ABC por quantidade consumida (E-44)",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/report-exports": {
+      "post": {
+        "operationId": "ReportsController_createExport",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Exportação assíncrona (202 Accepted) (E-45)",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/report-exports/{exportId}": {
+      "get": {
+        "operationId": "ReportsController_getExport",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exportId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Consulta a exportação e a URL assinada (E-45)",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/network/dashboard": {
+      "get": {
+        "operationId": "NetworkController_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Situação por clínica e indicadores consolidados (E-46)",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/v1/network/balances": {
+      "get": {
+        "operationId": "NetworkController_balances",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Saldo de um código de insumo em todas as clínicas (E-47)",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/v1/network/weekly-consumption": {
+      "get": {
+        "operationId": "NetworkController_weeklyConsumption",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Consumo semanal na rede ou por clínica (E-48)",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/v1/network/reports/{report}": {
+      "get": {
+        "operationId": "NetworkController_report",
+        "parameters": [
+          {
+            "name": "report",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Relatórios consolidados da rede (E-49)",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/v1/me/permissions": {
+      "get": {
+        "operationId": "PermissionsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Permissões efetivas e clínicas acessíveis (E-50)",
+        "tags": [
+          "permissions"
+        ]
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "operationId": "PermissionsController_roles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Perfis do módulo e suas permissões (E-51)",
+        "tags": [
+          "permissions"
+        ]
+      }
+    },
+    "/api/v1/roles/{role}/permissions": {
+      "put": {
+        "operationId": "PermissionsController_replace",
+        "parameters": [
+          {
+            "name": "role",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Substitui as permissões de um perfil (RF-03) (E-52)",
+        "tags": [
+          "permissions"
+        ]
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "SettingsController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Parâmetros de cálculo e de alerta (RF-04) (E-53)",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "operationId": "SettingsController_update",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Altera os parâmetros do módulo (E-54)",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/internal/clinics/{clinicId}": {
+      "put": {
+        "operationId": "InternalController_provisionClinic",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Provisiona o tenant de estoque (evento org.clinic.created) (E-55)",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/api/v1/internal/jobs/daily-scan": {
+      "post": {
+        "operationId": "InternalController_dailyScan",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Varredura diária: validade, consumo aprendido e prazo dos recebimentos (E-56)",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/budget/summary": {
+      "get": {
+        "operationId": "BudgetController_summary",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Visão orçamentária: valor em estoque, perdas e consumo em R$ (RF-44) (RF-44)",
+        "tags": [
+          "budget"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/budget/valuation": {
+      "get": {
+        "operationId": "BudgetController_valuation",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Valoração por insumo e por categoria (RF-44, RN-14) (RF-44)",
+        "tags": [
+          "budget"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/items/{itemId}/cost": {
+      "put": {
+        "operationId": "BudgetController_updateCost",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Custo unitário de referência do insumo (RF-43) (RF-43)",
+        "tags": [
+          "budget"
+        ]
+      }
+    },
+    "/api/v1/me/budget-view": {
+      "put": {
+        "operationId": "BudgetController_toggleView",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Chave de visão orçamentária do Superuser (RF-45) (RF-45)",
+        "tags": [
+          "budget"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Central de notificações do usuário (RF-29) (RF-29)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/notifications/{notificationId}/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notificationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Marca como lida (RF-29) (RF-29)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/clinics/{clinicId}/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_markAllRead",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Marca todas como lidas (RF-29) (RF-29)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/me/notification-preferences": {
+      "get": {
+        "operationId": "NotificationsController_preferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Preferências por tipo e canal (RF-30) (RF-30)",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_updatePreferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Altera as preferências (RF-30) (RF-30)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Estoque e insumos API",
+    "description": "API do módulo Estoque e insumos da Clínica Digital UFPE (OpenAPI 3.0). Contrato de referência: docs/api-contract.md.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "ProblemDetailsDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "https://estoque.clinicadigital.example/problems/validation-error"
+          },
+          "title": {
+            "type": "string",
+            "example": "Dados inválidos"
+          },
+          "status": {
+            "type": "number",
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "example": "Um ou mais campos precisam ser corrigidos."
+          },
+          "instance": {
+            "type": "string",
+            "example": "/api/v1/clinics/{clinicId}/items"
+          },
+          "code": {
+            "type": "string",
+            "example": "VALIDATION_ERROR"
+          },
+          "requestId": {
+            "type": "string",
+            "example": "01J..."
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-08-31T20:00:00.000Z"
+          },
+          "errors": {
+            "type": "object",
+            "example": {
+              "email": [
+                "Informe um e-mail válido."
+              ]
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code",
+          "timestamp"
+        ]
+      },
+      "CreateItemDto": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "example": "Luva de procedimento M (cx 100)"
+          },
+          "categoria": {
+            "type": "string",
+            "description": "Categoria de insumo da clínica (RF-06)."
+          },
+          "unidade": {
+            "type": "string",
+            "example": "cx"
+          },
+          "registraTemperatura": {
+            "type": "boolean",
+            "description": "Se registra temperatura de armazenamento."
+          },
+          "controlaLoteValidade": {
+            "type": "boolean",
+            "description": "Controle de lote e validade (opcional por insumo)."
+          },
+          "tempoReposicaoEstimadoDias": {
+            "type": "number",
+            "example": 7,
+            "description": "Tempo de reposição estimado, em dias (RN-03)."
+          },
+          "antecedenciaAlertaValidadeDias": {
+            "type": "number",
+            "example": 30,
+            "description": "Antecedência do alerta de validade, em dias (RF-08)."
+          }
+        },
+        "required": [
+          "nome",
+          "categoria",
+          "unidade",
+          "controlaLoteValidade",
+          "tempoReposicaoEstimadoDias"
+        ]
+      },
+      "CreateWithdrawalDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INS-0001",
+            "description": "Código do insumo (chave de negócio)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2.000",
+            "description": "Decimal em string, sem float."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consumption",
+              "expiry-loss",
+              "damage-discard",
+              "loan",
+              "donation"
+            ]
+          },
+          "lotId": {
+            "type": "string",
+            "description": "Escolhe outro lote que não o sugerido (gera aviso, RN-09)."
+          },
+          "recipient": {
+            "type": "string",
+            "description": "Obrigatório em empréstimo e doação."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Obrigatório em descarte por avaria e nos demais tipos que não são consumo."
+          }
+        },
+        "required": [
+          "code",
+          "quantity",
+          "kind"
+        ]
+      },
+      "CreateReturnDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "1.000"
+          },
+          "lotId": {
+            "type": "string",
+            "description": "Lote existente. Sem ele, informe newLotCode e newLotExpiresOn."
+          },
+          "newLotCode": {
+            "type": "string"
+          },
+          "newLotExpiresOn": {
+            "type": "string",
+            "example": "2027-03-01"
+          },
+          "returnedBy": {
+            "type": "string",
+            "description": "Quem retirou e devolveu."
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "quantity",
+          "returnedBy"
+        ]
+      },
+      "ReceiptLineDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "receivedQuantity": {
+            "type": "string",
+            "example": "10.000"
+          },
+          "lotCode": {
+            "type": "string"
+          },
+          "expiresOn": {
+            "type": "string",
+            "example": "2027-03-01"
+          }
+        },
+        "required": [
+          "code",
+          "receivedQuantity"
+        ]
+      },
+      "CreateReceiptDto": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string",
+            "enum": [
+              "central-warehouse",
+              "other-clinic",
+              "external-donation",
+              "other"
+            ]
+          },
+          "originClinicId": {
+            "type": "string",
+            "description": "other-clinic: só registra a origem, sem fluxo de transferência."
+          },
+          "description": {
+            "type": "string",
+            "description": "Obrigatório quando origin = other."
+          },
+          "donorLetterFileId": {
+            "type": "string",
+            "description": "Obrigatório quando origin = external-donation."
+          },
+          "proofFileId": {
+            "type": "string"
+          },
+          "orderedOn": {
+            "type": "string",
+            "example": "2026-10-01",
+            "description": "Data do pedido (não se aplica a doação)."
+          },
+          "requestId": {
+            "type": "string",
+            "description": "Importa a data do pedido de uma requisição em aberto."
+          },
+          "receivedOn": {
+            "type": "string",
+            "example": "2026-11-05",
+            "description": "Padrão: hoje. Não pode ser futura."
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptLineDto"
+            }
+          }
+        },
+        "required": [
+          "origin",
+          "lines"
+        ]
+      }
+    }
+  }
+}

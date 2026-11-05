@@ -1,0 +1,394 @@
+// Esquema inicial do módulo Estoque e insumos (rascunho para revisão, ver docs/decisions/ADR-001).
+// Princípios (RNF-14): a clínica é dimensão de todo registro; lote e validade ficam em cada movimentação.
+// Quantidades em Decimal(14,3); valores em reais em Decimal(14,2).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Profile {
+  SUPERUSER
+  ADMIN
+  WAREHOUSE
+  BUDGET_CONTROLLER
+}
+
+/// As nove categorias de movimentação (RF-14).
+enum MovementKind {
+  CONSUMPTION
+  EXPIRY_LOSS
+  DAMAGE_DISCARD
+  LOAN
+  DONATION
+  ENTRY
+  REVERSAL
+  INVENTORY_ADJUSTMENT
+  RETURN
+}
+
+enum ReceiptOrigin {
+  CENTRAL_WAREHOUSE
+  OTHER_CLINIC
+  EXTERNAL_DONATION
+  OTHER
+}
+
+enum IncorrectReceiptStatus {
+  AWAITING_EXCHANGE
+  EXCHANGED
+  INCORPORATED
+  DISCARDED
+}
+
+enum AlertKind {
+  CRITICAL_LEVEL
+  EXPIRY
+  LOT_NOT_NEAREST
+  HIGH_WITHDRAWAL
+  CONSUMPTION_DROP
+  INCORRECT_RECEIPT_OVERDUE
+}
+
+/// Espelho local da clínica (a fonte é o módulo de Organização; RF-01).
+model Clinic {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId String?  @unique
+  name       String
+  address    String?
+  manager    String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  categories          ItemCategory[]
+  items               Item[]
+  lots                Lot[]
+  movements           Movement[]
+  receipts            Receipt[]
+  incorrectReceipts   IncorrectReceipt[]
+  packages            Package[]
+  alerts              Alert[]
+  users               UserCache[]
+
+  @@map("clinics")
+}
+
+/// Cache do IAM: só id, nome e perfil (RNF-06). Sem e-mail, telefone ou documento.
+model UserCache {
+  id        String   @id
+  name      String
+  profile   Profile
+  clinicId  String?  @db.Uuid
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  clinic        Clinic?                  @relation(fields: [clinicId], references: [id])
+  preferences   NotificationPreference[]
+  notifications NotificationRead[]
+
+  @@index([clinicId])
+  @@map("user_cache")
+}
+
+model ItemCategory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId  String   @db.Uuid
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  items  Item[]
+
+  @@unique([clinicId, name])
+  @@map("item_categories")
+}
+
+model Item {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId                String   @db.Uuid
+  /// Chave de negócio, gerada pelo sistema (INS-0001), única por clínica.
+  code                    String
+  name                    String
+  categoryId              String   @db.Uuid
+  unit                    String
+  tracksLotAndExpiry      Boolean  @default(true)
+  expiryAlertLeadDays     Int      @default(30)
+  recordsTemperature      Boolean  @default(false)
+  temperatureRange        String?
+  estimatedLeadTimeDays   Int      @default(7)
+  /// Custo unitário de referência (RF-43). Nulo vale zero na valoração (RN-14).
+  unitCost                Decimal? @db.Decimal(14, 2)
+  active                  Boolean  @default(true)
+  /// Versão para ETag e If-Match.
+  version                 Int      @default(1)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  category     ItemCategory  @relation(fields: [categoryId], references: [id])
+  lots         Lot[]
+  movements    Movement[]
+  receiptLines ReceiptLine[]
+  packageItems PackageItem[]
+  alerts       Alert[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, categoryId])
+  @@map("items")
+}
+
+model Lot {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId  String    @db.Uuid
+  itemId    String    @db.Uuid
+  lotCode   String
+  /// Data civil, avaliada no fuso America/Recife. Nula para insumo sem controle de validade.
+  expiresOn DateTime? @db.Date
+  quantity  Decimal   @default(0) @db.Decimal(14, 3)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  clinic    Clinic     @relation(fields: [clinicId], references: [id])
+  item      Item       @relation(fields: [itemId], references: [id])
+  movements Movement[]
+
+  @@index([clinicId, itemId, expiresOn])
+  @@map("lots")
+}
+
+/// Livro de movimentações (RF-14, RNF-01). Só recebe inclusões; o estorno é um novo lançamento.
+model Movement {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId       String       @db.Uuid
+  itemId         String       @db.Uuid
+  lotId          String?      @db.Uuid
+  /// Lote e validade ficam copiados na movimentação (RNF-14).
+  lotCode        String?
+  expiresOn      DateTime?    @db.Date
+  kind           MovementKind
+  /// Positivo entra no estoque, negativo sai.
+  quantity       Decimal      @db.Decimal(14, 3)
+  reason         String?
+  recipient      String?
+  returnedBy     String?
+  userId         String
+  origin         String?
+  reversalOfId   String?      @unique @db.Uuid
+  idempotencyKey String?
+  occurredAt     DateTime     @default(now())
+
+  clinic     Clinic    @relation(fields: [clinicId], references: [id])
+  item       Item      @relation(fields: [itemId], references: [id])
+  lot        Lot?      @relation(fields: [lotId], references: [id])
+  reversalOf Movement? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversal   Movement? @relation("Reversal")
+
+  @@index([clinicId, occurredAt])
+  @@index([clinicId, itemId, occurredAt])
+  @@unique([clinicId, idempotencyKey])
+  @@map("movements")
+}
+
+model Receipt {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Número legível da nota (NR-0001).
+  number            String
+  clinicId          String        @db.Uuid
+  origin            ReceiptOrigin
+  originClinicId    String?       @db.Uuid
+  description       String?
+  donorLetterFileId String?
+  proofFileId       String?
+  orderedOn         DateTime?     @db.Date
+  receivedOn        DateTime      @db.Date
+  userId            String
+  reversedAt        DateTime?
+  reversalReason    String?
+  createdAt         DateTime      @default(now())
+
+  clinic Clinic        @relation(fields: [clinicId], references: [id])
+  lines  ReceiptLine[]
+
+  @@unique([clinicId, number])
+  @@index([clinicId, receivedOn])
+  @@map("receipts")
+}
+
+model ReceiptLine {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  receiptId       String   @db.Uuid
+  itemId          String   @db.Uuid
+  orderedQuantity Decimal? @db.Decimal(14, 3)
+  receivedQuantity Decimal @db.Decimal(14, 3)
+  lotCode         String?
+  expiresOn       DateTime? @db.Date
+  lotId           String?  @db.Uuid
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@index([receiptId])
+  @@map("receipt_lines")
+}
+
+model IncorrectReceipt {
+  id          String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId    String                 @db.Uuid
+  description String
+  quantity    Decimal                @db.Decimal(14, 3)
+  unit        String
+  supplier    String
+  /// Início da contagem do prazo (RN-12; padrão 45 dias).
+  notifiedOn  DateTime               @db.Date
+  note        String?
+  status      IncorrectReceiptStatus @default(AWAITING_EXCHANGE)
+  resolvedOn  DateTime?              @db.Date
+  justification String?
+  createdAt   DateTime               @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  @@index([clinicId, status])
+  @@map("incorrect_receipts")
+}
+
+model Package {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId      String   @db.Uuid
+  name          String
+  materialGroup String?
+  procedureId   String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  clinic Clinic        @relation(fields: [clinicId], references: [id])
+  items  PackageItem[]
+
+  @@map("packages")
+}
+
+model PackageItem {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  packageId       String  @db.Uuid
+  itemId          String  @db.Uuid
+  defaultQuantity Decimal @db.Decimal(14, 3)
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@unique([packageId, itemId])
+  @@map("package_items")
+}
+
+/// Alertas vigentes (RF-26 a RF-28) e seu histórico. Também alimenta a central de notificações (RF-29).
+model Alert {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId  String    @db.Uuid
+  itemId    String?   @db.Uuid
+  kind      AlertKind
+  title     String
+  body      String
+  /// Perfis que recebem este alerta.
+  profiles  Profile[]
+  raisedAt  DateTime  @default(now())
+  clearedAt DateTime?
+
+  clinic Clinic             @relation(fields: [clinicId], references: [id])
+  item   Item?              @relation(fields: [itemId], references: [id])
+  reads  NotificationRead[]
+
+  @@index([clinicId, clearedAt])
+  @@map("alerts")
+}
+
+model NotificationRead {
+  alertId String   @db.Uuid
+  userId  String
+  readAt  DateTime @default(now())
+
+  alert Alert     @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  UserCache @relation(fields: [userId], references: [id])
+
+  @@id([alertId, userId])
+  @@map("notification_reads")
+}
+
+model NotificationPreference {
+  id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId   String
+  kind     AlertKind
+  inApp    Boolean   @default(true)
+  email    Boolean   @default(false)
+  whatsapp Boolean   @default(false)
+
+  user UserCache @relation(fields: [userId], references: [id])
+
+  @@unique([userId, kind])
+  @@map("notification_preferences")
+}
+
+/// Permissões por perfil, editáveis pelo Superuser (RF-03).
+model RolePermission {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile    Profile
+  permission String
+
+  @@unique([profile, permission])
+  @@map("role_permissions")
+}
+
+/// Parâmetros do módulo (RF-04): safetyMarginPercent, highWithdrawalMultiplier, consumptionDropPercent,
+/// incorrectReceiptDeadlineDays.
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+/// Trilha de auditoria (RF-36): quem, o quê, antes e depois. Só inclusões.
+model AuditEntry {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinicId   String?  @db.Uuid
+  userId     String
+  action     String
+  entity     String
+  entityId   String?
+  before     Json?
+  after      Json?
+  occurredAt DateTime @default(now())
+
+  @@index([clinicId, occurredAt])
+  @@map("audit_entries")
+}
+
+/// Idempotência dos POSTs que alteram saldo (72 h).
+model IdempotencyRecord {
+  key         String   @id
+  requestHash String
+  response    Json
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("idempotency_records")
+}
+
+/// Eventos a publicar, gravados na mesma transação da movimentação (padrão outbox).
+model OutboxEvent {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        String
+  subject     String
+  payload     Json
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+
+  @@index([publishedAt])
+  @@map("outbox_events")
+}
