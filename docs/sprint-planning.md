@@ -4,7 +4,7 @@ Interno da equipe. Fonte das histórias: [backlog.md](backlog.md). Os campos ent
 
 ## Premissas
 
-- Duração sugerida: 1 semana por sprint.
+- Duração sugerida: 4 dias por sprint.
 - Uma história só entra na sprint se estiver **pronta para começar** (abaixo) e couber no tempo da sprint.
 
 **Pronta para começar:** critérios de aceite escritos, dependências externas atrás de um adaptador simulado e decisões já registradas em `architecture.md` e na seção 9 do contrato.
