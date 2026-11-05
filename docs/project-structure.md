@@ -46,7 +46,7 @@ Sim. É um monorepo com dois pacotes: `apps/web` (o micro frontend, que o shell 
 
 | Arquivo | Para quê |
 | --- | --- |
-| `ci.yml` | CI a cada merge request e push: lint, tipos, testes, e2e sem banco, sincronia do contrato e build do remote. |
+| `ci.yml` | CI a cada merge request e push: lint, tipos, testes, migrations e seed num PostgreSQL de teste, e2e com banco, sincronia do contrato e build do remote. |
 | `prisma-migrations.yml` | CI das migrations: sobe um PostgreSQL temporário e confere que o esquema e as migrations estão iguais. |
 
 ### Scripts (`scripts/`)
@@ -84,10 +84,12 @@ Configuração, banco e testes:
 | `nest-cli.json` | Configuração do Nest CLI (build). |
 | `package.json` | Dependências e comandos da API (`build`, `dev`, `test`, `test:e2e`, `prisma:generate`). |
 | `prisma/migrations/20261105000000_initial_schema/migration.sql` | Migration inicial, gerada do esquema (19 tabelas). |
+| `prisma/migrations/20261105100000_review_schema_and_outbox_retry/migration.sql` | Revisão do esquema: contadores de código por clínica, campos de tentativa do outbox, cache de usuário só com id, nome e perfil, e regras que o Prisma não expressa (saldo de lote nunca negativo, custos e prazos não negativos, um alerta aberto por insumo e tipo). |
 | `prisma/migrations/migration_lock.toml` | Trava o provedor de banco das migrations (PostgreSQL). Gerado pelo Prisma. |
 | `prisma/schema.prisma` | Esquema do banco: clínicas, insumos, lotes, livro de movimentações, notas, alertas, auditoria, outbox, fila de descarte e outros (19 tabelas). |
-| `prisma/seed.mjs` | Seed de desenvolvimento: parâmetros padrão e três clínicas de demonstração. |
-| `test/health.e2e-spec.ts` | Teste e2e sem banco: `/health/live` abre e rota de negócio sem login devolve 401. |
+| `prisma/seed.mjs` | Seed de desenvolvimento: parâmetros padrão e três clínicas; Odontologia e Fisioterapia com categorias, insumos, lotes (inclusive um vencido e um a vencer) e movimentações coerentes com os saldos. Pode rodar de novo sem duplicar. |
+| `test/health.e2e-spec.ts` | Teste e2e: `/health/live` abre e rota de negócio sem login devolve 401; com `TEST_DATABASE_URL`, confere também `/health/ready` no banco real. |
+| `test/outbox.e2e-spec.ts` | Integração com o PostgreSQL (só roda com `TEST_DATABASE_URL`): gravação, envio, falha, fila de descarte e retenção de 7 dias. |
 | `tsconfig.build.json` | TypeScript do build: exclui os testes. |
 | `tsconfig.json` | TypeScript da API (decorators ligados, modo estrito). |
 | `tsconfig.test.json` | TypeScript dos testes (tipos do Vitest). |
@@ -141,7 +143,13 @@ Pastas de apoio:
 | `events/consumers/iam-user.consumer.ts` | V-01: mantém o cache de usuários do IAM (esqueleto). |
 | `events/consumers/org-clinic.consumer.ts` | V-02: provisiona ou arquiva a clínica a partir de Organização (esqueleto). |
 | `events/consumers/requests.consumer.ts` | V-05: mantém os pedidos abertos vindos de Solicitações (esqueleto). |
-| `events/event-publisher.service.ts` | Publica eventos de domínio (esqueleto; padrão outbox, ver `architecture.md`). |
+| `events/event-publisher.service.ts` | Grava o evento no outbox, na mesma transação da movimentação (padrão outbox, ver `architecture.md`). |
+| `events/event-transport.ts` | Como o evento sai do módulo. Hoje só simulado (registra em log) até a plataforma ter barramento. |
+| `events/outbox.repository.ts` | Acesso ao outbox e à fila de descarte (interface e implementação com Prisma). |
+| `events/outbox-dispatcher.service.ts` | Despachante: envia os eventos em ordem por subject, com espera crescente entre tentativas e fila de descarte depois de 5 falhas. |
+| `events/outbox-dispatcher.spec.ts` | Testes do despachante com outbox em memória. |
+| `events/processed-events.service.ts` | Deduplicação de quem consome: `claim(id)` devolve false se o evento já foi tratado. |
+| `events/processed-events.spec.ts` | Testes da deduplicação. |
 | `events/event-types.ts` | Lista dos eventos consumidos (V-01 a V-05) e publicados (P-01 a P-06) do contrato. |
 | `events/events.module.ts` | Agrupa o publicador e os consumidores de eventos. |
 | `health/health.controller.ts` | `/health/live` e `/health/ready` (este confere o banco), sem autenticação. |

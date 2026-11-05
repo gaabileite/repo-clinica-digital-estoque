@@ -57,7 +57,7 @@ Princípios:
 
 | Pronto | Esqueleto (lança 501 "não implementado") |
 | --- | --- |
-| Regras puras: nível crítico, FEFO, validade, tempo de reposição, consumo médio, com testes | Services das 20 funcionalidades (64 rotas de negócio já declaradas e documentadas no OpenAPI, mais 2 de saúde) |
+| Regras puras: nível crítico, FEFO, validade, tempo de reposição, consumo médio, com testes. Outbox de eventos: gravação transacional, despachante com espera crescente e fila de descarte, com testes e integração com o banco. Seed de demonstração coerente com o livro | Services das 20 funcionalidades (64 rotas de negócio já declaradas e documentadas no OpenAPI, mais 2 de saúde) |
 | Matriz de permissões por perfil, guards e isolamento por clínica, com teste | Persistência (Prisma) e publicação de eventos |
 | Esquema do banco e migration inicial | Telas e hooks de dados do web |
 | Erros RFC 9457, observabilidade, `Idempotency-Key` obrigatório | Autenticação real (hoje só cabeçalhos de desenvolvimento) |
