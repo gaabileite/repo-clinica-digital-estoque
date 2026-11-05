@@ -17,10 +17,10 @@ Quatro pessoas, com papéis fixos ao longo das sprints. Com sprints de 1 semana,
 
 | Pessoa | Papel | Foco | Dono das pastas |
 | --- | --- | --- | --- |
-| **BE1** [nome] | Back-end | Núcleo do estoque: saldo, lotes, FEFO, movimentações, entradas, alertas e eventos | `apps/api/src/{stock,withdrawals,returns,movements,receipts,alerts,events,domain}` |
-| **BE2** [nome] | Back-end | Plataforma e cadastros: acesso, contrato e adaptadores, catálogo, painel, relatórios, orçamento, auditoria | `apps/api/src/{access,items,categories,packages,settings,permissions,dashboard,reports,budget,audit,network,internal}` e `scripts/` |
-| **FE1** [nome] | Front-end | Telas de operação: Estoque, Saídas, Devolução, Entradas e Painel | `apps/web/src/features/{stock,withdrawals,returns,receipts,dashboard}` |
-| **FE2** [nome] | Front-end | Base do módulo e telas de gestão: Cadastros, Movimentações, Relatórios, Configurações, Notificações e Visão orçamentária | `apps/web/src/{app,lib,components,styles}` e `features/{registrations,movements,reports,settings,notifications,budget}` |
+| **BE1** | Back-end | Núcleo do estoque: saldo, lotes, FEFO, movimentações, entradas, alertas e eventos | `apps/api/src/{stock,withdrawals,returns,movements,receipts,alerts,events,domain}` |
+| **BE2** | Back-end | Plataforma e cadastros: acesso, contrato e adaptadores, catálogo, painel, relatórios, orçamento, auditoria | `apps/api/src/{access,items,categories,packages,settings,permissions,dashboard,reports,budget,audit,network,internal}` e `scripts/` |
+| **FE1** | Front-end | Telas de operação: Estoque, Saídas, Devolução, Entradas e Painel | `apps/web/src/features/{stock,withdrawals,returns,receipts,dashboard}` |
+| **FE2** | Front-end | Base do módulo e telas de gestão: Cadastros, Movimentações, Relatórios, Configurações, Notificações e Visão orçamentária | `apps/web/src/{app,lib,components,styles}` e `features/{registrations,movements,reports,settings,notifications,budget}` |
 
 Combinados:
 
@@ -50,7 +50,7 @@ Combinados:
 
 | Pessoa | Ações |
 | --- | --- |
-| **BE1** | E0-H3: revisar o esquema do banco e aplicar a migration inicial; seed de demonstração; subir o PostgreSQL local; conferir a CI de migrations. Esboçar o despachante de eventos (outbox) e os testes das regras do domínio. |
+| **BE1** (Gabi)| E0-H3: revisar o esquema do banco e aplicar a migration inicial; seed de demonstração; subir o PostgreSQL local; conferir a CI de migrations. Esboçar o despachante de eventos (outbox) e os testes das regras do domínio. |
 | **BE2** | E0-H4: validar o token JWT do IAM (claims `profile` e `clinic_ids`), manter a autenticação de desenvolvimento e o cache de usuários. E0-H5: congelar o contrato 1.0 com os ajustes da 0.12 e criar os adaptadores simulados de IAM, Organização, Atendimento, Solicitações, Notificações e Arquivos. E0-H1: proteger a branch principal e conferir a CI. |
 | **FE1** | E0-H2: abrir o módulo em `/supplies` dentro do shell, testar a falha do módulo (aviso do shell) e o tema claro e escuro; garantir a execução isolada e a navegação pelos eventos do shell. |
 | **FE2** | Base do módulo: cliente da API gerado com a credencial do usuário, provedor do TanStack Query, permissões do usuário filtrando a barra de navegação, componentes de estados (vazio, carregando e erro) e a verificação de acessibilidade na CI. |
@@ -79,7 +79,7 @@ Combinados:
 
 | Pessoa | Ações |
 | --- | --- |
-| **BE1** | E3-H1 e E3-H2: rotas de saldo e de lotes (situação, cobertura, validade mais próxima, ordem FEFO) usando as regras do domínio; E2-H4: antecedência de validade por insumo. |
+| **BE1** (Gabi)| E3-H1 e E3-H2: rotas de saldo e de lotes (situação, cobertura, validade mais próxima, ordem FEFO) usando as regras do domínio; E2-H4: antecedência de validade por insumo. |
 | **BE2** | E2-H1 e E2-H2: insumos (código `INS-0001` gerado, `If-Match`) e categorias por clínica; E1-H4: isolamento entre clínicas, com teste que cruza ids; E1-H5: gravação da trilha de auditoria. |
 | **FE1** | E3-H1 e E3-H2: tela Estoque (busca, filtros, ordenação, contador, estados vazio e erro) e o modal de lotes, com cor e rótulo da validade; botão "Como ler o nível crítico". |
 | **FE2** | E2-H1 e E2-H2: tela Cadastros (insumos e categorias) com validação por campo e confirmação ao inativar. |
