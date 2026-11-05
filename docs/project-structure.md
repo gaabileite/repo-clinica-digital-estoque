@@ -17,9 +17,9 @@ Sim. É um monorepo com dois pacotes: `apps/web` (o micro frontend, que o shell 
 │   │   └── test/            testes e2e
 │   └── web/                 micro frontend React (porta 5175)
 │       └── src/             app, telas, componentes, lib e estilos
-├── docs/                    requisitos, contrato, backlog, planejamento, arquitetura e ADRs
+├── docs/                    requisitos, contrato, backlog, planejamento, arquitetura e decisões
 ├── prototype/               protótipo clicável, só como referência de interface
-├── scripts/                 banco, contrato, ambiente
+├── scripts/                 banco, contrato, ambiente e dev (5 arquivos)
 ├── .github/workflows/       CI
 └── openapi.json             contrato gerado pela API
 ```
@@ -51,25 +51,15 @@ Sim. É um monorepo com dois pacotes: `apps/web` (o micro frontend, que o shell 
 
 ### Scripts (`scripts/`)
 
+Cada script agrupa subcomandos relacionados; os comandos do `package.json` (`pnpm db:up`, `pnpm api:check` etc.) chamam esses arquivos. Sem argumento válido, o script mostra o uso.
+
 | Arquivo | Para quê |
 | --- | --- |
-| `check-api-divergence.mjs` | Regenera o contrato e o cliente e falha se algo mudou (usado em `pnpm api:check`). |
-| `check-env.mjs` | Valida o `.env` (`pnpm check:env`). |
-| `check-runtime.mjs` | Confere as versões de Node e pnpm (`pnpm check:runtime`). |
-| `db-check-migrations.mjs` | Compara o `schema.prisma` com as migrations usando um banco `_shadow` (usado na CI). |
-| `db-deploy.mjs` | Aplica as migrations em produção; só roda com `NODE_ENV=production`. |
-| `db-down.mjs` | Para o PostgreSQL local sem apagar os dados. |
-| `db-migrate.mjs` | Aplica as migrations no banco local (`pnpm db:migrate`). |
-| `db-seed.mjs` | Roda o seed de desenvolvimento (`pnpm db:seed`). |
-| `db-studio.mjs` | Abre o Prisma Studio para olhar o banco. |
-| `db-up.mjs` | Sobe o PostgreSQL local (`pnpm db:up`). |
+| `lib.mjs` | Funções comuns: validar versões de Node e pnpm, ler e validar o `.env`, checar porta livre e executar comandos. |
+| `db.mjs` | Banco do módulo: `setup` (tudo de uma vez), `up`, `down`, `migrate`, `seed`, `studio`, `check` (esquema x migrations, usado na CI) e `deploy` (produção). |
+| `api.mjs` | Contrato da API: `generate` (gera o `openapi.json` e o cliente do web) e `check` (falha se algo está desatualizado, usado na CI). |
+| `check.mjs` | Verificações de ambiente: `runtime` (versões) e `env` (`.env`). |
 | `dev.mjs` | Sobe a API e o módulo juntos (`pnpm dev`), checando versões, `.env` e portas livres. |
-| `generate-api.mjs` | Compila a API, gera o `openapi.json` e o cliente do web (`pnpm api:generate`). |
-| `lib/env.mjs` | Lê e valida o `.env` (portas, URLs, banco). Recusa autenticação de desenvolvimento em produção. |
-| `lib/ports.mjs` | Verifica se uma porta está livre. |
-| `lib/process.mjs` | Executa comandos filhos com mensagem de etapa. |
-| `lib/runtime.mjs` | Valida as versões de Node e pnpm. |
-| `setup.mjs` | Prepara o ambiente de uma vez: banco, migrations e seed (`pnpm setup`). |
 
 ## Documentação (`docs/`)
 
@@ -79,12 +69,8 @@ Sim. É um monorepo com dois pacotes: `apps/web` (o micro frontend, que o shell 
 | --- | --- |
 | `README.md` | Índice da documentação. |
 | `api-contract.md` | Contrato de APIs v0.11: APIs consumidas e expostas, eventos, segurança e erros. Pode ser compartilhado com o cliente. |
-| `architecture.md` | Como o módulo se encaixa no shell, como o código está organizado e o que está pronto ou é esqueleto. |
+| `architecture.md` | Como o módulo se encaixa no shell, como o código está organizado, o que está pronto ou é esqueleto e as decisões adotadas. |
 | `backlog.md` | Épicos e histórias com critérios de aceite. Interno. |
-| `decisions/ADR-000-template.md` | Modelo para novas decisões de arquitetura. |
-| `decisions/ADR-001-modelo-de-saldo-e-eventos.md` | Proposta: saldo derivado do livro, travamento no FEFO e eventos pelo padrão outbox. |
-| `decisions/ADR-002-autenticacao-e-prefixo-da-api.md` | Decisão pendente: como o módulo recebe a identidade, perfis no IAM e prefixo das rotas. |
-| `decisions/ADR-003-exportacoes-e-rotinas.md` | Decisão pendente: onde gerar PDF e Excel e quem agenda a varredura diária. |
 | `requirements.md` | Requisitos v2.0: funcionais, regras de negócio, não funcionais, escopo e pontos em aberto. Pode ser compartilhado com o cliente. |
 | `sprint-planning.md` | Planejamento básico das sprints, capacidade, rituais e modelo. Interno. |
 
@@ -126,7 +112,7 @@ Pastas de apoio:
 | `access/access.decorators.ts` | `@Public()`, `@RequirePermissions(...)` e `@CurrentAuth()`. |
 | `access/access.module.ts` | Liga os dois guards a todas as rotas. |
 | `access/auth-context.ts` | Tipo de quem chama: usuário, perfil, clínicas e chave de visão orçamentária. |
-| `access/auth.guard.ts` | Identifica o chamador. Hoje só aceita a autenticação de desenvolvimento por cabeçalhos; a real depende do ADR-002. |
+| `access/auth.guard.ts` | Identifica o chamador. Hoje só aceita a autenticação de desenvolvimento por cabeçalhos; a real repassa o cookie ao `/auth/me` do shell (ver `architecture.md`). |
 | `access/permissions.guard.ts` | Confere o escopo exigido pela rota e o vínculo do usuário com a clínica (`STOCK_CLINIC_FORBIDDEN`). |
 | `access/permissions.spec.ts` | Testes da matriz (por exemplo, o Controlador não opera o estoque). |
 | `access/permissions.ts` | Escopos `stock:*` e a matriz padrão de permissões por perfil. |
@@ -155,7 +141,7 @@ Pastas de apoio:
 | `events/consumers/iam-user.consumer.ts` | V-01: mantém o cache de usuários do IAM (esqueleto). |
 | `events/consumers/org-clinic.consumer.ts` | V-02: provisiona ou arquiva a clínica a partir de Organização (esqueleto). |
 | `events/consumers/requests.consumer.ts` | V-05: mantém os pedidos abertos vindos de Solicitações (esqueleto). |
-| `events/event-publisher.service.ts` | Publica eventos de domínio (esqueleto; o padrão outbox está no ADR-001). |
+| `events/event-publisher.service.ts` | Publica eventos de domínio (esqueleto; padrão outbox, ver `architecture.md`). |
 | `events/event-types.ts` | Lista dos eventos consumidos (V-01 a V-05) e publicados (P-01 a P-06) do contrato. |
 | `events/events.module.ts` | Agrupa o publicador e os consumidores de eventos. |
 | `health/health.controller.ts` | `/health/live` e `/health/ready` (este confere o banco), sem autenticação. |

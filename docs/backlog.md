@@ -21,7 +21,7 @@ Legenda: **[E]** Essencial, **[I]** Importante, **[D]** Desejável (prioridades 
 | E8 | Visão orçamentária | 5 | RF-42 a 45 |
 | E9 | Qualidade e implantação | contínuo e 6 | RNF-02, 06 a 12 |
 
-Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçamentária (E8) depende do ponto em aberto 1.
+Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçamentária (E8) segue as decisões 1 e 2 de `architecture.md`.
 
 ---
 
@@ -42,7 +42,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 **E0-H4 Autenticação e perfis (RF-35, RNF-05).** [E]
 - Dado o cookie de sessão do shell, então o módulo identifica usuário, perfil e clínica.
 - A API responde 403 fora do perfil ou da clínica, com teste automatizado por perfil.
-- Depende do mapeamento dos 4 perfis no IAM.
+- O módulo repassa o cookie de sessão ao `GET /api/v1/auth/me` do shell; o perfil e as clínicas vêm de `user_cache` (ver `architecture.md`).
 
 **E0-H5 Contrato OpenAPI e mocks.** [E]
 - Contrato 1.0 publicado, cliente gerado e `api:check` sem divergência.
@@ -84,7 +84,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 - Pacote é uma lista de insumos com quantidades padrão, por clínica, com ativar e inativar.
 
 **E2-H4 Antecedência de validade (RF-08).** [I]
-- A antecedência é definida por insumo e alimenta a situação "a vencer" (RN-08). Padrão por categoria depende do ponto 7.
+- A antecedência é definida por insumo e alimenta a situação "a vencer" (RN-08). Padrão de 30 dias, sem padrão por categoria.
 
 **E2-H5 Parâmetros de cálculo e alerta (RF-04).** [I]
 - O Superuser ajusta margem (20%), múltiplo de retirada (3×), queda de consumo (50%) e prazo do recebimento incorreto (45 dias).
@@ -158,11 +158,11 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 **E5-H5 Recebimentos incorretos (RF-25, RN-12).** [I]
 - Registra empresa, data da notificação e motivo; estados: aguardando troca, trocado, incorporado e descartado.
 - Aos 45 dias sem troca, alerta Administrador e Almoxarife e libera incorporar ou descartar.
-- Quem notifica a empresa é o ponto 5.
+- A equipe notifica a empresa fora do sistema; o sistema só registra a data e alerta aos 45 dias.
 
 **E5-H6 Solicitações de insumo (RF-21).** [D]
 - Importar uma requisição preenche itens, quantidades e data do pedido e marca a requisição como atendida.
-- Depende dos campos disponíveis no sistema de solicitações (ponto 8).
+- Usa um adaptador simulado com os campos mínimos (número, data e itens).
 
 ## E6. Alertas e notificações (Sprint 4)
 
@@ -189,7 +189,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 - Por tipo de alerta e canal (aplicativo, e-mail, WhatsApp); padrão: aplicativo ligado e e-mail só para nível crítico.
 
 **E6-H7 Agrupamento, resumo e canal externo (RF-31, RF-32).** [D]
-- Agrupa alertas repetidos e envia resumo periódico (frequência no ponto 11).
+- Agrupa alertas repetidos e envia resumo periódico (semanal, na segunda-feira).
 - E-mail e WhatsApp simulados até a integração real.
 
 ## E7. Painel e relatórios (Sprints 4 e 5)
@@ -207,7 +207,7 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 
 **E7-H4 Exportação (RF-41).** [D]
 - PDF e Excel respeitando os filtros da tela; sem dados, mostra aviso em vez de arquivo vazio.
-- Geração no servidor ou no navegador é decisão pendente.
+- Geração no servidor, com resposta direta em PDF ou Excel.
 
 ## E8. Visão orçamentária (Sprint 5)
 
@@ -241,21 +241,25 @@ Sugestão de MVP para o piloto: E0 a E4 e os [E] de E5, E6 e E7. A visão orçam
 
 **E9-H4 Carga inicial e piloto.** [E]
 - Importação dos insumos e saldos da clínica piloto e treinamento do Almoxarife.
-- Revisar a margem do nível crítico com 60 dias de dados reais (ponto 6).
+- Revisar a margem do nível crítico com 60 dias de dados reais (decisão 6).
 
 ---
 
-## Pontos em aberto que travam histórias
+## Decisões que orientam as histórias
 
-| Ponto | Afeta |
+As decisões completas estão em `architecture.md`. As que mais mexem nas histórias:
+
+| Decisão | Afeta |
 | --- | --- |
-| 1 e 2 (orçamento e ações do Controlador) | E8 inteiro |
-| 3 (empréstimo com prazo e retorno) | E4-H1 |
-| 5 (quem notifica a empresa) | E5-H5 |
-| 6 e 7 (margem e antecedência) | E2-H4, E2-H5, E6-H1 |
-| 8 (campos do sistema de solicitações) | E5-H6 |
-| 10 (baixa de lotes vencidos) | E4-H5 |
-| 11 (frequência do resumo) | E6-H7 |
+| Autenticação delegada ao `/auth/me` do shell, com perfil em `user_cache` | E0-H4, E1-H2, E1-H3 |
+| Custo por insumo mantido pelo Controlador; sem orçamento previsto | E8 inteiro |
+| Empréstimo só com destinatário | E4-H1 |
+| Notificação à empresa fora do sistema | E5-H5 |
+| Margem de 20% e antecedência de 30 dias, ajustáveis | E2-H4, E2-H5, E6-H1 |
+| Solicitações atrás de adaptador simulado | E5-H6 |
+| Baixa manual de lotes vencidos | E4-H5 |
+| Resumo semanal de notificações | E6-H7 |
+| Exportação gerada no servidor | E5-H3, E7-H4 |
 
 ## Definição de pronto (proposta)
 

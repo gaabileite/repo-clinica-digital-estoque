@@ -9,7 +9,7 @@ Interno da equipe. Fonte das histórias: [backlog.md](backlog.md). Os campos ent
 - Uma história só entra na sprint se estiver **pronta para começar** (abaixo) e couber na capacidade.
 - Estimativas: pontos por história ou camisetas (P, M, G), definidas pelo time no planejamento. Sugestão: estimar primeiro as histórias da Sprint 0 e da Sprint 1.
 
-**Pronta para começar:** critérios de aceite escritos, dependências externas resolvidas ou com mock combinado, pontos em aberto que a afetam respondidos ou registrados como suposição.
+**Pronta para começar:** critérios de aceite escritos, dependências externas atrás de um adaptador simulado e decisões de produto já registradas em `architecture.md`.
 
 **Pronta (definição de pronto):** critérios de aceite cobertos por testes, `pnpm lint`, `typecheck` e `test` passando, contrato e cliente sem divergência (`pnpm api:check`), migration versionada quando houver mudança de banco, acessibilidade verificada nas telas, revisão de código aprovada e demonstração feita.
 
@@ -29,15 +29,15 @@ Capacidade total: [x] dias de trabalho. Reservar cerca de 20% para revisão, cor
 | --- | --- |
 | E0-H1 Repositório e esteira | Confirmar o repositório oficial e a visibilidade; proteger a branch principal; CI rodando em merge request |
 | E0-H2 Remote no shell | Subir o módulo na 5175 e abrir `/supplies` no shell; testar a falha do módulo; conferir tema claro e escuro |
-| E0-H3 Modelo de dados base | Revisar o esquema do banco com o time (ADR-001); aplicar a migration inicial; seed de demonstração |
-| E0-H4 Autenticação e perfis | Decidir o mecanismo (ADR-002); mapear os 4 perfis no IAM; teste de acesso por perfil e por clínica |
+| E0-H3 Modelo de dados base | Revisar o esquema do banco com o time; aplicar a migration inicial; seed de demonstração |
+| E0-H4 Autenticação e perfis | Implementar a autenticação pelo `/auth/me` do shell e a tabela `user_cache`; teste de acesso por perfil e por clínica |
 | E0-H5 Contrato e mocks | Congelar o contrato 1.0 com os ajustes da v2.0; mocks dos módulos externos |
 
-**Entregáveis:** pipeline verde, módulo abrindo no shell, esquema do banco aprovado, ADR-001 e ADR-002 decididos.
+**Entregáveis:** pipeline verde, módulo abrindo no shell, esquema do banco aprovado e autenticação funcionando com o shell.
 
 **Já adiantado no esqueleto:** estrutura de pastas, 69 rotas declaradas, regras puras testadas, guards de perfil e de clínica, migration inicial, CI.
 
-**Riscos:** mapeamento dos perfis no IAM depende de outra equipe; contrato e shell divergem no prefixo da API e no tipo de credencial.
+**Riscos:** o `/auth/me` do shell só conhece os papéis ADMIN e USER, então os perfis do módulo ficam todos em `user_cache`; o contrato v0.11 diverge do shell no prefixo e na credencial (decisão em `architecture.md`, a v0.12 registra).
 
 ## Sprint 1: Cadastros e consulta
 
@@ -53,7 +53,7 @@ Capacidade total: [x] dias de trabalho. Reservar cerca de 20% para revisão, cor
 | E1-H4 Isolamento entre clínicas | Teste cruzando ids de clínicas diferentes |
 | E1-H5 Trilha de auditoria | Gravação; a tela de consulta está fora do escopo |
 
-**Ficam para a Sprint 2 ou quando a dependência destravar:** E1-H1 (clínicas) e E1-H2 (usuários), porque dependem de Organização e IAM; E1-H3 (permissões editáveis); E2-H3 (pacotes); E2-H5 (parâmetros).
+**Ficam para a Sprint 2:** E1-H1 (clínicas) e E1-H2 (usuários), que dependem da autenticação pronta; E1-H3 (permissões editáveis); E2-H3 (pacotes); E2-H5 (parâmetros).
 
 **Entregáveis:** telas Cadastros (insumos e categorias) e Estoque funcionando com dados reais, demonstração ao cliente com o protótipo como referência.
 
@@ -63,7 +63,7 @@ Capacidade total: [x] dias de trabalho. Reservar cerca de 20% para revisão, cor
 
 **Meta:** registrar retirada com FEFO, devolução, descarte, estorno e consultar o livro de movimentações.
 
-Histórias: E4-H1 a E4-H8 e, se houver capacidade, E2-H3 e E2-H5. É o núcleo do módulo: priorizar E4-H1, E4-H2, E4-H6 e E4-H7. Atenção ao ponto em aberto 3 (empréstimo com prazo e retorno).
+Histórias: E4-H1 a E4-H8 e, se houver capacidade, E2-H3 e E2-H5. É o núcleo do módulo: priorizar E4-H1, E4-H2, E4-H6 e E4-H7. Primeira tarefa: trocar `number` por `Decimal` no domínio. O empréstimo só registra o destinatário (decisão 3).
 
 ## Sprints 3 a 6 (visão geral, detalhar no planejamento de cada uma)
 
@@ -74,7 +74,7 @@ Histórias: E4-H1 a E4-H8 e, se houver capacidade, E2-H3 e E2-H5. É o núcleo d
 | 5 | Relatórios e visão orçamentária | E7-H2 a E7-H4, E8-H1 a E8-H4 |
 | 6 | Fechamento e piloto | E9-H1 a E9-H4, correções, teste com o cliente |
 
-A visão orçamentária (E8) depende de respostas do cliente aos pontos em aberto 1 e 2. Se elas demorarem, mova E8 para depois do piloto e antecipe o fechamento.
+A visão orçamentária (E8) segue as decisões 1 e 2 de `architecture.md`. Se faltar tempo, ela é o primeiro item a sair do piloto.
 
 ## Rituais
 
