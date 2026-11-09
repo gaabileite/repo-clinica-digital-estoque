@@ -14,8 +14,9 @@ import { defineConfig } from 'vite';
 // A origem fixa em localhost continua valendo para a integração local com o shell.
 const emCodespaces = Boolean(process.env.CODESPACE_NAME);
 
-export default defineConfig({
-  base: emCodespaces ? '/' : 'http://localhost:5175/',
+export default defineConfig(({ command }) => ({
+  // O build mantém a origem contratada com o shell; só o servidor local usa a URL encaminhada.
+  base: emCodespaces && command === 'serve' ? '/' : 'http://localhost:5175/',
   plugins: [
     tailwindcss(),
     react(),
@@ -38,4 +39,4 @@ export default defineConfig({
     proxy: { '/api/v1': { target: process.env.API_BASE_URL || 'http://localhost:3002', changeOrigin: true } },
   },
   preview: { port: 5175, strictPort: true, cors: true },
-});
+}));
