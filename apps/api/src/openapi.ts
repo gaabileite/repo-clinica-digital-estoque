@@ -5,7 +5,7 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('Estoque e insumos API')
     .setDescription('API do módulo Estoque e insumos da Clínica Digital UFPE (OpenAPI 3.0). Contrato de referência: docs/api-contract.md.')
-    .setVersion('0.1.0')
+    .setVersion('1.0.0')
     .addBearerAuth()
     .build();
   return SwaggerModule.createDocument(app, config);
