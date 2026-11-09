@@ -10,8 +10,12 @@ import { defineConfig } from 'vite';
  * http://localhost:5175/remoteEntry.js, módulo exposto `./App` (export nomeado `App`),
  * react e react-dom como singleton.
  */
+// No Codespaces, o navegador acessa o módulo pela URL da porta encaminhada.
+// A origem fixa em localhost continua valendo para a integração local com o shell.
+const emCodespaces = Boolean(process.env.CODESPACE_NAME);
+
 export default defineConfig({
-  base: 'http://localhost:5175/',
+  base: emCodespaces ? '/' : 'http://localhost:5175/',
   plugins: [
     tailwindcss(),
     react(),
@@ -25,10 +29,11 @@ export default defineConfig({
   resolve: { alias: { '@': resolve(import.meta.dirname, './src') } },
   build: { target: 'chrome89' },
   server: {
+    host: '0.0.0.0',
     port: 5175,
     strictPort: true,
     cors: true,
-    origin: 'http://localhost:5175',
+    origin: emCodespaces ? undefined : 'http://localhost:5175',
     // O shell encaminha /api/v1/supplies para cá; daqui segue para a API do módulo (porta 3002).
     proxy: { '/api/v1': { target: process.env.API_BASE_URL || 'http://localhost:3002', changeOrigin: true } },
   },
