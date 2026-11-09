@@ -22,7 +22,8 @@ export const pathForPage = (page: string, base: string = MODULE_BASE): string =>
 
 export function announceNavigation(pathname: string, standalone: boolean): void {
   if (standalone) {
-    window.history.replaceState(null, '', pathname);
+    // Mantém o histórico para voltar e avançar na execução isolada.
+    if (window.location.pathname !== pathname) window.history.pushState(null, '', pathname);
     return;
   }
   window.dispatchEvent(new CustomEvent<NavDetail>('mfe-navigated', { detail: { pathname, search: '' } }));
