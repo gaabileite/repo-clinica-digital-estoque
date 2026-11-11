@@ -2,6 +2,7 @@ import './styles/module.css';
 import { ModuleNav } from './app/ModuleNav';
 import { PAGES, pageById } from './app/routes';
 import { useShellPage } from './lib/use-shell-page';
+import { ModuleProviders } from './app/ModuleProviders';
 
 interface AppProps {
   /** true só na execução isolada; o shell renderiza <App /> sem props. */
@@ -20,10 +21,12 @@ export function App({ standalone = false }: AppProps) {
   const nav = PAGES.filter((p) => p.inNav);
 
   return (
-    <section aria-label="Estoque e insumos">
-      <ModuleNav pages={nav} current={current.id} onGo={go} />
-      <Page />
-    </section>
+    <ModuleProviders>
+      <section aria-label="Estoque e insumos">
+        <ModuleNav pages={nav} current={current.id} onGo={go} />
+        <Page />
+      </section>
+    </ModuleProviders>
   );
 }
 
