@@ -19,7 +19,11 @@ export default defineConfig({
       name: 'suppliesMfe',
       filename: 'remoteEntry.js',
       exposes: { './App': './src/App.tsx' },
-      shared: { react: { singleton: true }, 'react-dom': { singleton: true } },
+      shared: {
+          react: { singleton: true },
+          'react-dom': { singleton: true },
+          'react/jsx-runtime': { singleton: true, eager: true },
+        },
     }),
   ],
   resolve: { alias: { '@': resolve(import.meta.dirname, './src') } },
