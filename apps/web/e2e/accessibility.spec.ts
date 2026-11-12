@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/me/permissions', (route) =>
+    route.fulfill({ json: { profile: 'warehouse', permissions: [], clinics: ['clinic-test'] } }),
+  );
+});
+
 const pages = [
   { path: '/', heading: 'Painel' },
   { path: '/registrations', heading: 'Cadastros' },
