@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Estoque e insumos API
  * API do módulo Estoque e insumos da Clínica Digital UFPE (OpenAPI 3.0). Contrato de referência: docs/api-contract.md.
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 1.0.0
  */
 import type { CreateWithdrawalDtoKind } from './createWithdrawalDtoKind';
 

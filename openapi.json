@@ -1714,7 +1714,7 @@
   "info": {
     "title": "Estoque e insumos API",
     "description": "API do módulo Estoque e insumos da Clínica Digital UFPE (OpenAPI 3.0). Contrato de referência: docs/api-contract.md.",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "contact": {}
   },
   "tags": [],
