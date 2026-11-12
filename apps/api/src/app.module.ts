@@ -30,11 +30,13 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { SettingsModule } from './settings/settings.module';
 import { InternalModule } from './internal/internal.module';
 import { BudgetModule } from './budget/budget.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
+    IntegrationsModule,
     AccessModule,
     EventsModule,
     ItemsModule,
