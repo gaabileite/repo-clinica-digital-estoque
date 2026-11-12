@@ -11,9 +11,17 @@ export function useShellPage(standalone: boolean) {
       const next = pageFromPath((event as CustomEvent<NavDetail>).detail?.pathname ?? '', base);
       if (next !== null) setPage(next);
     };
+    // No modo isolado não há shell para repassar o botão Voltar/Avançar.
+    const onPopState = () => {
+      if (standalone) setPage(pageFromPath(window.location.pathname, base) ?? '');
+    };
     window.addEventListener('shell-navigated', onShellNavigated);
-    return () => window.removeEventListener('shell-navigated', onShellNavigated);
-  }, [base]);
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('shell-navigated', onShellNavigated);
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [base, standalone]);
 
   const go = useCallback(
     (next: string) => {
