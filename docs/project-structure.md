@@ -89,6 +89,7 @@ Configuração, banco e testes:
 | `prisma/schema.prisma` | Esquema do banco: clínicas, insumos, lotes, livro de movimentações, notas, alertas, auditoria, outbox, fila de descarte e outros (19 tabelas). |
 | `prisma/seed.mjs` | Seed de desenvolvimento: parâmetros padrão e três clínicas; Odontologia e Fisioterapia com categorias, insumos, lotes (inclusive um vencido e um a vencer) e movimentações coerentes com os saldos. Pode rodar de novo sem duplicar. |
 | `test/health.e2e-spec.ts` | Teste e2e: `/health/live` abre e rota de negócio sem login devolve 401; com `TEST_DATABASE_URL`, confere também `/health/ready` no banco real. |
+| `test/stock.e2e-spec.ts` | Integração com o PostgreSQL (só com `TEST_DATABASE_URL`): saldos e lotes com dados próprios, filtros, ordenação, cursor, isolamento entre clínicas e acesso por perfil. |
 | `test/outbox.e2e-spec.ts` | Integração com o PostgreSQL (só roda com `TEST_DATABASE_URL`): gravação, envio, falha, fila de descarte e retenção de 7 dias. |
 | `tsconfig.build.json` | TypeScript do build: exclui os testes. |
 | `tsconfig.json` | TypeScript da API (decorators ligados, modo estrito). |
@@ -155,6 +156,13 @@ Pastas de apoio:
 | `health/health.controller.ts` | `/health/live` e `/health/ready` (este confere o banco), sem autenticação. |
 | `prisma/prisma.module.ts` | Disponibiliza o acesso ao banco para toda a API. |
 | `prisma/prisma.service.ts` | Cliente do Prisma com conexão no início e desconexão no fim. |
+| `stock/civil-date.ts` | Data civil no fuso das clínicas (America/Recife): "hoje" e leitura das colunas DATE. |
+| `stock/stock-metrics.ts` | Regras de leitura do estoque, puras: classifica os lotes (status pela antecedência do insumo, ordem FEFO, lote sugerido) e monta o saldo de um insumo (saldo utilizável, validade mais próxima, cobertura, nível crítico, situação). |
+| `stock/stock-metrics.spec.ts` | Testes dessas regras, incluindo o caso do documento de requisitos (nota 6) e a antecedência por insumo. |
+| `stock/balance-list.ts` | Filtros, ordenação (pt-BR, nulos por último) e paginação por cursor da lista de saldos. |
+| `stock/balance-list.spec.ts` | Testes dos filtros, da ordenação e do cursor. |
+| `stock/dto/list-balances-query.dto.ts` | Filtros e ordenação aceitos pela rota de saldos, com validação. |
+| `stock/dto/stock-responses.dto.ts` | Formato das respostas de saldos e de lotes (documentado no OpenAPI). |
 | `types/express.d.ts` | Acrescenta `req.auth` (quem está chamando) ao tipo de requisição do Express. |
 
 ### Funcionalidades da API
@@ -166,7 +174,7 @@ Cada pasta tem o mesmo desenho: `<nome>.controller.ts` (rotas, com permissão e 
 | `items/` | Cadastro de insumos | RF-05 | 7 |
 | `categories/` | Categorias de insumo por clínica | RF-06 | 3 |
 | `packages/` | Pacotes de insumos | RF-07 | 3 |
-| `stock/` | Saldo, lotes, disponibilidade, consumo e tempo de reposição | RF-19, RF-20 | 5 |
+| `stock/` | Saldo, lotes, disponibilidade, consumo e tempo de reposição (saldos e lotes prontos; o resto é esqueleto) | RF-19, RF-20 | 5 |
 | `withdrawals/` | Retirada com FEFO e baixa de lotes vencidos | RF-09, RF-10, RF-15 | 2 |
 | `procedure-consumptions/` | Baixa de pacote e baixas pendentes vindas do Atendimento | RF-11, RF-12 | 5 |
 | `returns/` | Devolução de item não utilizado | RF-13 | 1 |
