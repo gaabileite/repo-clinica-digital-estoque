@@ -16,7 +16,7 @@ export type Permission =
   | 'stock:budget:switch';
 
 export function hasPermission(
-  grantedPermissions: readonly Permission[],
+  grantedPermissions: readonly string[],
   requiredPermission?: Permission,
 ): boolean {
   if (requiredPermission === undefined) {
