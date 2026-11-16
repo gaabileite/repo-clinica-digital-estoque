@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from './components/ui';
 import { ApiError } from './lib/api-client/custom-fetch';
 import { getMePermissions } from './lib/me-permissions';
 import { useShellPage } from './lib/use-shell-page';
+import { useEffect } from 'react';
 
 interface AppProps {
   standalone?: boolean;
@@ -32,6 +33,20 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
     enabled: permissions === undefined,
     retry: false,
   });
+
+  const isBudgetController =
+    permissions === undefined &&
+    query.isSuccess &&
+    query.data.profile === 'budget-controller';
+
+  const requestedPage = pageById(page);
+  const shouldOpenBudget = isBudgetController && requestedPage.id === '';
+
+  useEffect(() => {
+    if (shouldOpenBudget) {
+      go('budget');
+    }
+  }, [go, shouldOpenBudget]);
 
   if (permissions === undefined) {
     if (query.isPending || (query.isError && query.isFetching)) {
@@ -59,12 +74,15 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
     }
   }
 
-  const current = pageById(page);
+  const current = shouldOpenBudget ? pageById('budget') : requestedPage;
   const Page = current.component;
   const grantedPermissions = permissions ?? query.data?.permissions ?? [];
 
   const nav = PAGES.filter(
-    (p) => p.inNav && hasPermission(grantedPermissions, p.permission),
+    (p) =>
+      p.inNav &&
+      (!isBudgetController || p.id !== '') &&
+      hasPermission(grantedPermissions, p.permission),
   );
 
   const canAccess = hasPermission(grantedPermissions, current.permission);

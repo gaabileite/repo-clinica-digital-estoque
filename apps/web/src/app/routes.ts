@@ -17,8 +17,8 @@ export interface PageDef {
   id: string;
   label: string;
   component: ComponentType;
-  /** Escopo exigido para ver a tela. Sem escopo, todos veem. */
-  permission?: Permission;
+  /** Escopo exigido ou lista de escopos aceitos. Sem escopo, todos veem. */
+  permission?: Permission | readonly Permission[];
   /** Aparece na barra do módulo. */
   inNav: boolean;
 }
@@ -31,7 +31,7 @@ export const PAGES: PageDef[] = [
   { id: 'receipts', label: 'Entradas', component: ReceiptsPage, permission: 'stock:receive', inNav: true },
   { id: 'movements', label: 'Movimentações', component: MovementsPage, permission: 'stock:read', inNav: true },
   { id: 'reports', label: 'Relatórios', component: ReportsPage, permission: 'stock:reports', inNav: true },
-  { id: 'registrations', label: 'Cadastros', component: RegistrationsPage, inNav: true },
+  { id: 'registrations', label: 'Cadastros', component: RegistrationsPage, permission: ['stock:admin', 'stock:catalog:write', 'stock:budget:cost:write'], inNav: true },
   { id: 'settings', label: 'Configurações', component: SettingsPage, permission: 'stock:admin', inNav: true },
   { id: 'budget', label: 'Visão orçamentária', component: BudgetPage, permission: 'stock:budget:read', inNav: true },
   { id: 'notifications', label: 'Notificações', component: NotificationsPage, permission: 'stock:read', inNav: false },

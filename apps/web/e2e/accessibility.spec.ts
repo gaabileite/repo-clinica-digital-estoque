@@ -1,12 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-test.beforeEach(async ({ page }) => {
-  await page.route('**/api/v1/me/permissions', (route) =>
-    route.fulfill({ json: { profile: 'warehouse', permissions: [], clinics: ['clinic-test'] } }),
-  );
-});
-
 const pages = [
   { path: '/', heading: 'Painel' },
   { path: '/registrations', heading: 'Cadastros' },
@@ -18,6 +12,19 @@ for (const dark of [false, true]) {
 
   for (const screen of pages) {
     test(`${screen.heading} — tema ${theme}`, async ({ page }) => {
+
+      const isRegistrations = screen.path === '/registrations';
+
+      await page.route('**/api/v1/me/permissions', (route) =>
+        route.fulfill({
+          json: {
+            profile: isRegistrations ? 'admin' : 'warehouse',
+            permissions: isRegistrations ? ['stock:read', 'stock:catalog:write'] : [],
+            clinics: ['clinic-test'],
+          },
+        }),
+      );
+
       await page.goto(screen.path);
 
       await expect(

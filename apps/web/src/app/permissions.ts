@@ -17,11 +17,15 @@ export type Permission =
 
 export function hasPermission(
   grantedPermissions: readonly string[],
-  requiredPermission?: Permission,
+  requiredPermission?: Permission | readonly Permission[],
 ): boolean {
   if (requiredPermission === undefined) {
     return true;
   }
 
-  return grantedPermissions.includes(requiredPermission);
+  if (typeof requiredPermission === 'string') {
+    return grantedPermissions.includes(requiredPermission);
+  }
+
+  return requiredPermission.some((permission) => grantedPermissions.includes(permission));
 }

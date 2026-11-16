@@ -47,10 +47,20 @@ test('usa os escopos de orçamento para o perfil budget-controller', async ({ pa
   };
   await page.route(permissionsUrl, (route) => route.fulfill({ json: budgetController }));
 
-  await page.goto('/budget');
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/budget$/);
   await expect(page.getByRole('heading', { name: 'Visão orçamentária', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Estoque', exact: true })).toHaveCount(0);
 
   await page.goto('/stock');
   await expect(page.getByRole('heading', { name: 'Acesso restrito' })).toBeVisible();
+});
+
+test('restringe Cadastros para o Almoxarife', async ({ page }) => {
+  await page.route(permissionsUrl, (route) => route.fulfill({ json: warehouse }));
+
+  await page.goto('/registrations');
+
+  await expect(page.getByRole('heading', { name: 'Acesso restrito' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cadastros', exact: true })).toHaveCount(0);
 });
