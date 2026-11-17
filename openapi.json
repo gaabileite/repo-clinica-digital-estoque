@@ -426,11 +426,163 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Busca por nome ou código, sem diferenciar maiúsculas nem acentos.",
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Categoria de insumo (id).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "situation",
+            "required": false,
+            "in": "query",
+            "description": "Situação do estoque (RN-01).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "adequate",
+                "reorder",
+                "critical",
+                "out-of-stock"
+              ]
+            }
+          },
+          {
+            "name": "expiry",
+            "required": false,
+            "in": "query",
+            "description": "Tem lote vencido ou lote a vencer (RN-08).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "expired",
+                "expiring"
+              ]
+            }
+          },
+          {
+            "name": "expiringWithinDays",
+            "required": false,
+            "in": "query",
+            "description": "Validade mais próxima (de lote utilizável) em até N dias.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 365,
+              "type": "number"
+            }
+          },
+          {
+            "name": "lotControl",
+            "required": false,
+            "in": "query",
+            "description": "Com ou sem controle de lote e validade.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
+            "name": "temperature",
+            "required": false,
+            "in": "query",
+            "description": "Registra ou não temperatura de armazenamento.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "Insumos ativos (padrão), inativos ou todos.",
+            "schema": {
+              "default": "true",
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "description": "Campo de ordenação; o prefixo `-` inverte. Valores nulos ficam por último.",
+            "schema": {
+              "default": "-criticalLevel",
+              "type": "string",
+              "enum": [
+                "name",
+                "-name",
+                "code",
+                "-code",
+                "balance",
+                "-balance",
+                "criticalLevel",
+                "-criticalLevel",
+                "coverageDays",
+                "-coverageDays",
+                "nearestExpiry",
+                "-nearestExpiry",
+                "situation",
+                "-situation"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor devolvido em `page.nextCursor`.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalancePageDto"
+                }
+              }
+            }
           }
         },
         "summary": "Saldo por insumo, nível crítico, cobertura e validade mais próxima (E-12)",
@@ -462,7 +614,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotListDto"
+                }
+              }
+            }
           }
         },
         "summary": "Lotes com saldo em ordem de validade (FEFO) (E-13)",
@@ -1842,6 +2001,321 @@
           "unit",
           "tracksLotAndExpiry",
           "estimatedLeadTimeDays"
+        ]
+      },
+      "NearestExpiryDto": {
+        "type": "object",
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210"
+          },
+          "expiresOn": {
+            "type": "string",
+            "example": "2027-06-02",
+            "description": "Data civil (fuso America/Recife)."
+          },
+          "daysToExpiry": {
+            "type": "number",
+            "example": 210,
+            "description": "Dias até a validade."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "expiring",
+              "expired",
+              "no-expiry"
+            ]
+          }
+        },
+        "required": [
+          "lotId",
+          "lotCode",
+          "expiresOn",
+          "daysToExpiry",
+          "status"
+        ]
+      },
+      "ItemBalanceDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "tracksLotAndExpiry": {
+            "type": "boolean"
+          },
+          "recordsTemperature": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "balance": {
+            "type": "string",
+            "example": "3.000",
+            "description": "Saldo total, com lotes vencidos. Decimal em string."
+          },
+          "usableBalance": {
+            "type": "string",
+            "example": "3.000",
+            "description": "Saldo utilizável: sem lotes vencidos (RN-05)."
+          },
+          "expiredQuantity": {
+            "type": "string",
+            "example": "0.000"
+          },
+          "expiredLots": {
+            "type": "number",
+            "description": "Número de lotes vencidos com saldo."
+          },
+          "expiringLots": {
+            "type": "number",
+            "description": "Número de lotes a vencer, dentro da antecedência do insumo."
+          },
+          "nearestExpiry": {
+            "nullable": true,
+            "description": "Validade mais próxima entre os lotes utilizáveis.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NearestExpiryDto"
+              }
+            ]
+          },
+          "avgDailyConsumption": {
+            "type": "string",
+            "example": "0.567",
+            "description": "Consumo médio diário, líquido de devoluções, dos últimos 30 dias (RN-02)."
+          },
+          "coverageDays": {
+            "type": "number",
+            "nullable": true,
+            "example": 2.31,
+            "description": "Dias de cobertura; nulo quando não há consumo."
+          },
+          "leadTimeDays": {
+            "type": "number",
+            "example": 7,
+            "description": "Tempo de reposição em dias (RN-03)."
+          },
+          "leadTimeSource": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "estimated"
+            ]
+          },
+          "criticalLevel": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 9,
+            "description": "Nível crítico de 0 a 10 (RN-01)."
+          },
+          "situation": {
+            "type": "string",
+            "enum": [
+              "adequate",
+              "reorder",
+              "critical",
+              "out-of-stock"
+            ]
+          },
+          "expiryAlertLeadDays": {
+            "type": "number",
+            "example": 30,
+            "description": "Antecedência do alerta de validade deste insumo, em dias (RF-08)."
+          }
+        },
+        "required": [
+          "itemId",
+          "code",
+          "name",
+          "categoryId",
+          "categoryName",
+          "unit",
+          "tracksLotAndExpiry",
+          "recordsTemperature",
+          "active",
+          "balance",
+          "usableBalance",
+          "expiredQuantity",
+          "expiredLots",
+          "expiringLots",
+          "nearestExpiry",
+          "avgDailyConsumption",
+          "coverageDays",
+          "leadTimeDays",
+          "leadTimeSource",
+          "criticalLevel",
+          "situation",
+          "expiryAlertLeadDays"
+        ]
+      },
+      "BalancePageMetaDto": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "number",
+            "description": "Insumos que atendem aos filtros (\"Exibindo N\")."
+          },
+          "totalInClinic": {
+            "type": "number",
+            "description": "Insumos da clínica, antes dos filtros (\"de M\")."
+          }
+        },
+        "required": [
+          "nextCursor",
+          "total",
+          "totalInClinic"
+        ]
+      },
+      "BalancePageDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemBalanceDto"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/BalancePageMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "page"
+        ]
+      },
+      "LotItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "expiryAlertLeadDays": {
+            "type": "number",
+            "example": 30
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit",
+          "expiryAlertLeadDays"
+        ]
+      },
+      "LotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210"
+          },
+          "expiresOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2027-06-02"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "3.000"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "expiring",
+              "expired",
+              "no-expiry"
+            ],
+            "description": "Situação da validade (RN-08): sempre mostrar com cor e rótulo."
+          },
+          "daysToExpiry": {
+            "type": "number",
+            "nullable": true,
+            "description": "Dias até a validade; negativo se vencido."
+          },
+          "usable": {
+            "type": "boolean",
+            "description": "Lote vencido não é utilizável (RN-05)."
+          },
+          "suggested": {
+            "type": "boolean",
+            "description": "Primeiro lote utilizável na ordem FEFO (RN-04)."
+          }
+        },
+        "required": [
+          "id",
+          "lotCode",
+          "expiresOn",
+          "quantity",
+          "status",
+          "daysToExpiry",
+          "usable",
+          "suggested"
+        ]
+      },
+      "LotListDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/LotItemDto"
+          },
+          "data": {
+            "description": "Lotes com saldo, na ordem FEFO.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LotDto"
+            }
+          }
+        },
+        "required": [
+          "item",
+          "data"
         ]
       },
       "CreateWithdrawalDto": {

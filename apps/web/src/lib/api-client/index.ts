@@ -6,10 +6,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  BalancePageDto,
   CreateItemDto,
   CreateReceiptDto,
   CreateReturnDto,
   CreateWithdrawalDto,
+  LotListDto,
+  StockControllerBalancesParams
   MyPermissionsDto,
   ProblemDetailsDto
 } from './models';
@@ -591,7 +594,7 @@ export const packagesControllerUpdate = async (clinicId: string,
 
 
 export type stockControllerBalancesResponse200 = {
-  data: void
+  data: BalancePageDto
   status: 200
 }
 
@@ -602,20 +605,29 @@ export type stockControllerBalancesResponseSuccess = (stockControllerBalancesRes
 
 export type stockControllerBalancesResponse = (stockControllerBalancesResponseSuccess)
 
-export const getStockControllerBalancesUrl = (clinicId: string,) => {
+export const getStockControllerBalancesUrl = (clinicId: string,
+    params?: StockControllerBalancesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/balances`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/balances?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/balances`
 }
 
 /**
  * @summary Saldo por insumo, nível crítico, cobertura e validade mais próxima (E-12)
  */
-export const stockControllerBalances = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<stockControllerBalancesResponse> => {
+export const stockControllerBalances = async (clinicId: string,
+    params?: StockControllerBalancesParams, options?: Parameters<typeof customFetch>[1]): Promise<stockControllerBalancesResponse> => {
 
-  return customFetch<stockControllerBalancesResponse>(getStockControllerBalancesUrl(clinicId),
+  return customFetch<stockControllerBalancesResponse>(getStockControllerBalancesUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
@@ -627,7 +639,7 @@ export const stockControllerBalances = async (clinicId: string, options?: Parame
 
 
 export type stockControllerLotsResponse200 = {
-  data: void
+  data: LotListDto
   status: 200
 }
 

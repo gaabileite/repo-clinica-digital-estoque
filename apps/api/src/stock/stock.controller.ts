@@ -1,6 +1,8 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../access/access.decorators';
+import { ListBalancesQueryDto } from './dto/list-balances-query.dto';
+import { BalancePageDto, LotListDto } from './dto/stock-responses.dto';
 import { StockService } from './stock.service';
 
 @ApiTags('stock')
@@ -11,14 +13,16 @@ export class StockController {
   @Get('clinics/:clinicId/balances')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Saldo por insumo, nível crítico, cobertura e validade mais próxima (E-12)' })
-  balances(@Param('clinicId') clinicId: string, @Query() query: Record<string, string>) {
+  @ApiOkResponse({ type: BalancePageDto })
+  balances(@Param('clinicId', new ParseUUIDPipe()) clinicId: string, @Query() query: ListBalancesQueryDto) {
     return this.service.balances(clinicId, query);
   }
 
   @Get('clinics/:clinicId/items/:itemId/lots')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Lotes com saldo em ordem de validade (FEFO) (E-13)' })
-  lots(@Param('clinicId') clinicId: string, @Param('itemId') itemId: string) {
+  @ApiOkResponse({ type: LotListDto })
+  lots(@Param('clinicId', new ParseUUIDPipe()) clinicId: string, @Param('itemId', new ParseUUIDPipe()) itemId: string) {
     return this.service.lots(clinicId, itemId);
   }
 
