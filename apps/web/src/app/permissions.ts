@@ -14,3 +14,18 @@ export type Permission =
   | 'stock:budget:read'
   | 'stock:budget:cost:write'
   | 'stock:budget:switch';
+
+export function hasPermission(
+  grantedPermissions: readonly string[],
+  requiredPermission?: Permission | readonly Permission[],
+): boolean {
+  if (requiredPermission === undefined) {
+    return true;
+  }
+
+  if (typeof requiredPermission === 'string') {
+    return grantedPermissions.includes(requiredPermission);
+  }
+
+  return requiredPermission.some((permission) => grantedPermissions.includes(permission));
+}
