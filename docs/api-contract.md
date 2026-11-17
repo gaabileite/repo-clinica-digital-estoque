@@ -170,6 +170,7 @@ Perfis: **S** superuser, **A** administrador, **AL** almoxarife, **C** controlad
 - E-52 `PUT /roles/{role}/permissions`: substitui permissões de um perfil. S
 - E-53 `GET /settings`: `safetyMarginPercent`, `highWithdrawalMultiplier`, `consumptionDropPercent`, `incorrectReceiptDeadlineDays` (45). S
 - E-54 `PUT /settings`: altera os parâmetros. S
+- E-50 `GET /me/permissions`: perfil, permissões e clínicas do usuário autenticado, no formato `{ profile, permissions, clinics }` (`clinics` vazio para o superuser, que enxerga todas). Aberta a qualquer perfil autenticado, inclusive o controlador orçamentário. S A AL C
 
 ### Visão orçamentária (novo na 0.12)
 Valores em reais só para o controlador e para o superuser com a chave ligada (RN-15); o servidor não entrega valores a quem não tem o escopo (RNF-05).

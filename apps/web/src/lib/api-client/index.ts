@@ -12,8 +12,9 @@ import type {
   CreateReturnDto,
   CreateWithdrawalDto,
   LotListDto,
-  ProblemDetailsDto,
   StockControllerBalancesParams
+  MyPermissionsDto,
+  ProblemDetailsDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -2117,7 +2118,7 @@ export const networkControllerReport = async (report: string, options?: Paramete
 
 
 export type permissionsControllerMineResponse200 = {
-  data: void
+  data: MyPermissionsDto
   status: 200
 }
 
@@ -2137,7 +2138,8 @@ export const getPermissionsControllerMineUrl = () => {
 }
 
 /**
- * @summary Permissões efetivas e clínicas acessíveis (E-50)
+ * Aberta a qualquer usuário autenticado. Para o superuser, `clinics` vem vazio e significa todas as clínicas.
+ * @summary Permissões efetivas e clínicas do usuário logado (E-50)
  */
 export const permissionsControllerMine = async ( options?: Parameters<typeof customFetch>[1]): Promise<permissionsControllerMineResponse> => {
 
