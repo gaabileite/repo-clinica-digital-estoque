@@ -1496,14 +1496,22 @@
     },
     "/api/v1/me/permissions": {
       "get": {
+        "description": "Aberta a qualquer usuário autenticado. Para o superuser, `clinics` vem vazio e significa todas as clínicas.",
         "operationId": "PermissionsController_mine",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyPermissionsDto"
+                }
+              }
+            }
           }
         },
-        "summary": "Permissões efetivas e clínicas acessíveis (E-50)",
+        "summary": "Permissões efetivas e clínicas do usuário logado (E-50)",
         "tags": [
           "permissions"
         ]
@@ -1989,6 +1997,64 @@
         "required": [
           "origin",
           "lines"
+        ]
+      },
+      "MyPermissionsDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": [
+              "superuser",
+              "admin",
+              "warehouse",
+              "budget-controller"
+            ],
+            "example": "admin",
+            "description": "Profile of the logged user."
+          },
+          "permissions": {
+            "type": "array",
+            "example": [
+              "stock:read",
+              "stock:withdraw"
+            ],
+            "description": "Scopes the profile has. The front uses this list to decide which screens to show.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "stock:read",
+                "stock:network:read",
+                "stock:withdraw",
+                "stock:receive",
+                "stock:adjust",
+                "stock:reverse",
+                "stock:catalog:write",
+                "stock:reports",
+                "stock:audit",
+                "stock:admin",
+                "stock:service",
+                "stock:budget:read",
+                "stock:budget:cost:write",
+                "stock:budget:switch"
+              ]
+            }
+          },
+          "clinics": {
+            "example": [
+              "0b6c1c1e-0000-4000-8000-000000000000"
+            ],
+            "description": "Ids of the clinics the user belongs to. Empty for the superuser, who sees every clinic.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "profile",
+          "permissions",
+          "clinics"
         ]
       }
     }
