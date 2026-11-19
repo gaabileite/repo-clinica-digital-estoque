@@ -25,6 +25,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: [new URL(config.shellBaseUrl).origin, new URL(config.webBaseUrl).origin],
     credentials: true,
+    exposedHeaders: ['ETag', 'X-Request-Id'],
   });
   app.enableShutdownHooks();
 
