@@ -186,7 +186,7 @@ function StockContent() {
                   <td className="p-3">{item.category}</td>
                   <td className="whitespace-nowrap p-3">{number(item.balance)} {item.unit}</td>
                   <td className="whitespace-nowrap p-3">{number(item.usable)} {item.unit}</td>
-                  <td className="p-3"><span className="block whitespace-nowrap">{date(item.expiry)}</span>
+                  <td className="p-3"><span className="block whitespace-nowrap">{item.expiry ? date(item.expiry) : item.expiredLots > 0 ? "Sem validade utilizável" : "Sem validade próxima"}</span>
                     {item.expiryStatus && <Status value={item.expiryStatus} />}
                     {item.expiredLots > 0 && <span className="mt-1 block text-xs text-danger-text">{item.expiredLots} lote(s) vencido(s)</span>}
                   </td>
