@@ -12,9 +12,9 @@ import type {
   CreateReturnDto,
   CreateWithdrawalDto,
   LotListDto,
-  StockControllerBalancesParams
   MyPermissionsDto,
-  ProblemDetailsDto
+  ProblemDetailsDto,
+  StockControllerBalancesParams
 } from './models';
 
 import { customFetch } from './custom-fetch';
