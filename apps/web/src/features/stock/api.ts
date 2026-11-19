@@ -107,3 +107,27 @@ export function useStockLots(clinicId: string, itemId: string) {
     },
   });
 }
+
+/** Consulta categorias a partir dos saldos até o endpoint de cadastros ser entregue pelo BE2. */
+export function useStockCategories(clinicId: string) {
+  return useQuery({
+    queryKey: ['stock', 'categories', clinicId],
+    enabled: Boolean(clinicId),
+    staleTime: 60_000,
+    queryFn: async ({ signal }): Promise<{ id: string; name: string }[]> => {
+      const categories = new Map<string, string>();
+      let cursor: string | undefined;
+      do {
+        const response = await stockControllerBalances(clinicId, {
+          limit: 200, sort: 'name', cursor,
+        }, { signal });
+        for (const item of response.data.data) {
+          if (item.categoryId) categories.set(item.categoryId, item.categoryName);
+        }
+        cursor = response.data.page.nextCursor ?? undefined;
+      } while (cursor);
+      return [...categories].map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    },
+  });
+}
