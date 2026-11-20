@@ -98,13 +98,13 @@
 Perfis: **S** superuser, **A** administrador, **AL** almoxarife, **C** controlador orçamentário. O superuser lê todas as clínicas e não registra movimentações. "+serviço" = acesso por client credentials com escopo `stock:service`. `{c}` = `/clinics/{clinicId}`.
 
 ### Cadastros
-- E-01 `GET {c}/items`: lista insumos (filtros `q`, `code`, `category`, `status`, `active`). S A AL
+- E-01 `GET {c}/items`: lista insumos (filtros `q`, `code`, `category` como ID, `status` como `active` ou `inactive`, `active` como `true`, `false` ou `all`, padrão `true`). Ordenação estável por nome e ID, paginação por `limit` (1 a 200, padrão 50) e `cursor`. Resposta `{data, page:{nextCursor, total}}`. Os insumos operacionais não incluem custo unitário. S A AL
 - E-02 `POST {c}/items`: cria insumo (`name`, `categoryId`, `unit`, `recordsTemperature`, `temperatureRange`, `tracksLotAndExpiry`, `estimatedLeadTimeDays`, `expiryAlertLeadDays`). Código `INS-0001…` gerado pelo sistema. A
-- E-03 `GET {c}/items/{id}`: detalhe. S A AL
-- E-04 `PATCH {c}/items/{id}`: altera (If-Match). O código não muda. A
+- E-03 `GET {c}/items/{id}`: detalhe operacional, com `version` e cabeçalho `ETag` (por exemplo, `"1"`). S A AL
+- E-04 `PATCH {c}/items/{id}`: altera os campos informados (If-Match obrigatório). O código não muda. Responde 428 sem If-Match e 412 com versão desatualizada; devolve a nova versão no ETag. A
 - E-05 `POST {c}/items/{id}/deactivate`: inativa (`/reactivate` reativa). Não apaga insumo com saldo. A
-- E-06 `GET /catalog/units`: unidades de medida. S A AL
-- E-07 `GET {c}/item-categories`: categorias da clínica, com nº de insumos. S A AL
+- E-06 `GET /catalog/units`: lista de strings das unidades do protótipo (`un`, `cx`, `pct`, `frasco`, `seringa`, `rolo`, `galão`, `dose`, `fardo`, `L`, `mL`, `kg`). S A AL
+- E-07 `GET {c}/item-categories`: lista de categorias da clínica, com `id`, `name`, `active`, `itemCount` e `activeItemCount`. S A AL
 - E-08 `POST {c}/item-categories`: cria categoria. `PATCH /item-categories/{id}` renomeia (atualiza os insumos) ou inativa (recusa se houver insumo ativo). A
 - E-09 `GET {c}/packages`: lista pacotes e seus insumos. S A AL
 - E-10 `POST {c}/packages`: cria pacote (nome, grupo de material, `procedureId` opcional, lista `{itemId, quantidade padrão}`). A

@@ -3,16 +3,19 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { TokenVerifier } from '../src/access/token-verifier';
 import { AppModule } from '../src/app.module';
+import { CategoriesService } from '../src/categories/categories.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
-/** The real verifier is replaced: 'good-token' is an admin of clinic-1, anything else is invalid. */
+/** The real verifier is replaced: 'good-token' is an admin of 11111111-1111-4111-8111-111111111111, anything else is invalid. */
 const fakeVerifier = {
   verify: async (token: string) =>
-    token === 'good-token' ? { userId: 'user-1', profile: 'admin' as const, clinicIds: ['clinic-1'] } : undefined,
+    token === 'good-token' ? { userId: 'user-1', profile: 'admin' as const, clinicIds: ['11111111-1111-4111-8111-111111111111'] } : undefined,
 };
 
 async function createApp() {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(CategoriesService)
+    .useValue({ list: async () => [], create: async () => ({ id: 'category-test', name: 'EPI', active: true }) })
     .overrideProvider(PrismaService)
     .useValue({})
     .overrideProvider(TokenVerifier)
@@ -24,19 +27,19 @@ async function createApp() {
 }
 
 describe('authentication with the IAM token (e2e)', () => {
-  it('lets a valid token through to the route (501 = reached the service)', async () => {
+  it('lets a valid token reach the catalog service', async () => {
     const app = await createApp();
     await request(app.getHttpServer())
-      .get('/clinics/clinic-1/item-categories')
+      .get('/clinics/11111111-1111-4111-8111-111111111111/item-categories')
       .set('Authorization', 'Bearer good-token')
-      .expect(501);
+      .expect(200);
     await app.close();
   });
 
   it('answers 401 to an invalid token', async () => {
     const app = await createApp();
     await request(app.getHttpServer())
-      .get('/clinics/clinic-1/item-categories')
+      .get('/clinics/11111111-1111-4111-8111-111111111111/item-categories')
       .set('Authorization', 'Bearer bad-token')
       .expect(401);
     await app.close();
@@ -45,7 +48,7 @@ describe('authentication with the IAM token (e2e)', () => {
   it("answers 403 when the token is valid but the clinic is not the user's", async () => {
     const app = await createApp();
     await request(app.getHttpServer())
-      .get('/clinics/clinic-2/item-categories')
+      .get('/clinics/22222222-2222-4222-8222-222222222222/item-categories')
       .set('Authorization', 'Bearer good-token')
       .expect(403);
     await app.close();
@@ -53,7 +56,7 @@ describe('authentication with the IAM token (e2e)', () => {
 
   it('answers 401 with no credentials at all', async () => {
     const app = await createApp();
-    await request(app.getHttpServer()).get('/clinics/clinic-1/item-categories').expect(401);
+    await request(app.getHttpServer()).get('/clinics/11111111-1111-4111-8111-111111111111/item-categories').expect(401);
     await app.close();
   });
 });
