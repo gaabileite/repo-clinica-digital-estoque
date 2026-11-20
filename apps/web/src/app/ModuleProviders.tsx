@@ -1,5 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type PropsWithChildren } from 'react';
+import { createContext, useState, type PropsWithChildren } from 'react';
+import type { MePermissions } from '../lib/me-permissions';
+
+export const ModuleSessionContext = createContext<MePermissions | undefined>(undefined);
 
 export function ModuleProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState(() => new QueryClient());
