@@ -154,19 +154,13 @@ export function useCatalogChange(clinicId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (change: CatalogChange) => {
-      const json = (body: unknown): RequestInit => ({
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
       switch (change.kind) {
         case 'save-item': {
           if (!change.itemId) return itemsControllerCreate(clinicId, change.values);
           if (!change.etag)
             throw new Error('O serviço não informou a versão deste insumo. Recarregue antes de editar.');
-          const options = json(change.values);
-          return itemsControllerUpdate(clinicId, change.itemId, {
-            ...options,
-            headers: { ...options.headers, 'If-Match': change.etag },
+          return itemsControllerUpdate(clinicId, change.itemId, change.values, {
+            headers: { 'If-Match': change.etag },
           });
         }
         case 'item-status':
@@ -175,13 +169,13 @@ export function useCatalogChange(clinicId: string) {
             : itemsControllerReactivate(clinicId, change.item.id);
         case 'save-category':
           return change.categoryId
-            ? categoriesControllerUpdate(clinicId, change.categoryId, json({ name: change.name }))
-            : categoriesControllerCreate(clinicId, json({ name: change.name }));
+            ? categoriesControllerUpdate(clinicId, change.categoryId, { name: change.name })
+            : categoriesControllerCreate(clinicId, { name: change.name });
         case 'category-status':
           return categoriesControllerUpdate(
             clinicId,
             change.category.id,
-            json({ active: !change.category.active }),
+            { active: !change.category.active },
           );
       }
     },
