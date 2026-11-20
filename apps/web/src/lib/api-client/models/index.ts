@@ -8,6 +8,10 @@
 
 export * from './balancePageDto';
 export * from './balancePageMetaDto';
+export * from './catalogItemDto';
+export * from './catalogItemPageDto';
+export * from './categoryDto';
+export * from './createCategoryDto';
 export * from './createItemDto';
 export * from './createReceiptDto';
 export * from './createReceiptDtoOrigin';
@@ -17,6 +21,10 @@ export * from './createWithdrawalDtoKind';
 export * from './itemBalanceDto';
 export * from './itemBalanceDtoLeadTimeSource';
 export * from './itemBalanceDtoSituation';
+export * from './itemPageMetaDto';
+export * from './itemsControllerListActive';
+export * from './itemsControllerListParams';
+export * from './itemsControllerListStatus';
 export * from './lotDto';
 export * from './lotDtoStatus';
 export * from './lotItemDto';
@@ -36,3 +44,5 @@ export * from './stockControllerBalancesParams';
 export * from './stockControllerBalancesSituation';
 export * from './stockControllerBalancesSort';
 export * from './stockControllerBalancesTemperature';
+export * from './updateCategoryDto';
+export * from './updateItemDto';
