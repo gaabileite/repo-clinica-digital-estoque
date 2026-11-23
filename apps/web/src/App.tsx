@@ -1,7 +1,7 @@
 import './styles/module.css';
 import { useQuery } from '@tanstack/react-query';
 import { ModuleNav } from './app/ModuleNav';
-import { ModuleProviders } from './app/ModuleProviders';
+import { ModuleProviders, ModuleSessionContext } from './app/ModuleProviders';
 import { hasPermission, type Permission } from './app/permissions';
 import { PAGES, pageById } from './app/routes';
 import { ErrorState, LoadingState } from './components/ui';
@@ -88,7 +88,11 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
   const canAccess = hasPermission(grantedPermissions, current.permission);
 
   return (
-    <>
+    <ModuleSessionContext.Provider value={{
+      profile: query.data?.profile ?? '',
+      permissions: [...grantedPermissions],
+      clinics: query.data?.clinics ?? [],
+    }}>
       <ModuleNav pages={nav} current={current.id} onGo={go} />
 
       {canAccess ? (
@@ -99,7 +103,7 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
           <p>Você não possui permissão para acessar esta página.</p>
         </div>
       )}
-    </>
+    </ModuleSessionContext.Provider>
   );
 }
 
