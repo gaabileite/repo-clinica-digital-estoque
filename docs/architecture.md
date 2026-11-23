@@ -92,7 +92,7 @@ Texto completo na seção 9 do contrato (versão 0.12).
 | --- | --- |
 | Autenticação | Token JWT do IAM no cabeçalho `Authorization`, com as claims `sub`, `profile` e `clinic_ids` (contrato, seção 2). Enquanto o IAM não emitir o token para o módulo, valem os cabeçalhos `x-dev-*`, só em desenvolvimento; a API recusa subir com eles em produção. |
 | Saldo e FEFO | O livro de movimentações é a fonte da verdade. O saldo do lote é atualizado na mesma transação que grava a movimentação. Saídas travam os lotes envolvidos (`SELECT ... FOR UPDATE`, em ordem de id). |
-| Quantidades | `Decimal` no domínio e no banco, string decimal na API. Hoje o domínio usa `number`; trocar é a primeira tarefa da Sprint 2, antes da primeira saída real. |
+| Quantidades | `Decimal` no domínio e no banco, string decimal na API. O domínio já usa `Decimal` (decimal.js); o arredondamento da string da API é de três casas. |
 | Prefixo das rotas | O módulo responde em `/api/v1`, que o shell encaminha em `/api/v1/supplies`; o gateway da plataforma o publica como `/stock/v1`. |
 | Idioma dos campos | Inglês em toda a API (contrato 0.12). |
 | Idempotência | Tabela `idempotency_records`, retenção de 72 horas. |
