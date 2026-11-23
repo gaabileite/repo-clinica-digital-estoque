@@ -1,18 +1,20 @@
+import { Decimal, dec, sumQuantities, type Quantity } from './decimal';
+
 export interface LotStock {
   id: string;
   /** Data civil (AAAA-MM-DD) ou nulo para insumo sem controle de validade. */
   expiresOn: string | null;
-  quantity: number;
+  quantity: Quantity;
 }
 
 export interface LotAllocation {
   lotId: string;
-  quantity: number;
+  quantity: Decimal;
 }
 
 export type FefoResult =
   | { ok: true; allocations: LotAllocation[]; suggestedLotId: string | null; notNearest: boolean }
-  | { ok: false; code: 'STOCK_INSUFFICIENT'; available: number };
+  | { ok: false; code: 'STOCK_INSUFFICIENT'; available: Decimal };
 
 const isExpired = (lot: LotStock, today: string) => lot.expiresOn !== null && lot.expiresOn < today;
 
@@ -31,25 +33,25 @@ export const fefoOrder = (a: LotStock, b: LotStock): number => {
  */
 export function allocateFefo(
   lots: LotStock[],
-  requested: number,
+  requested: Quantity,
   today: string,
   preferredLotId?: string,
 ): FefoResult {
-  const usable = lots.filter((l) => l.quantity > 0 && !isExpired(l, today)).sort(fefoOrder);
-  const available = usable.reduce((sum, l) => sum + l.quantity, 0);
-  if (requested > available) return { ok: false, code: 'STOCK_INSUFFICIENT', available };
+  const usable = lots.filter((l) => dec(l.quantity).gt(0) && !isExpired(l, today)).sort(fefoOrder);
+  const available = sumQuantities(usable.map((l) => l.quantity));
+  if (dec(requested).gt(available)) return { ok: false, code: 'STOCK_INSUFFICIENT', available };
 
   const suggested = usable[0];
   const preferred = preferredLotId ? usable.find((l) => l.id === preferredLotId) : undefined;
   const ordered = preferred ? [preferred, ...usable.filter((l) => l !== preferred)] : usable;
 
   const allocations: LotAllocation[] = [];
-  let rest = requested;
+  let rest = dec(requested);
   for (const lot of ordered) {
-    if (rest <= 0) break;
-    const take = Math.min(lot.quantity, rest);
+    if (rest.lte(0)) break;
+    const take = Decimal.min(lot.quantity, rest);
     allocations.push({ lotId: lot.id, quantity: take });
-    rest -= take;
+    rest = rest.minus(take);
   }
   return {
     ok: true,

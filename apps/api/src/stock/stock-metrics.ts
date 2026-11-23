@@ -1,4 +1,8 @@
 import {
+  Decimal,
+  dec,
+  sumQuantities,
+  type Quantity,
   averageDailyConsumption,
   coverageDays,
   criticalLevel,
@@ -20,10 +24,11 @@ export interface LotInput {
   lotCode: string;
   /** Civil date `YYYY-MM-DD`, or null when the item does not track expiry. */
   expiresOn: string | null;
-  quantity: number;
+  quantity: Quantity;
 }
 
-export interface LotView extends LotInput {
+export interface LotView extends Omit<LotInput, 'quantity'> {
+  quantity: Decimal;
   status: LotStatus;
   /** Days until expiry (negative when already expired); null when there is no expiry date. */
   daysToExpiry: number | null;
@@ -58,13 +63,13 @@ export interface NearestExpiry {
 
 export interface ItemBalance {
   item: ItemInfo;
-  balance: number;
-  usableBalance: number;
-  expiredQuantity: number;
+  balance: Decimal;
+  usableBalance: Decimal;
+  expiredQuantity: Decimal;
   expiredLots: number;
   expiringLots: number;
   nearestExpiry: NearestExpiry | null;
-  avgDailyConsumption: number;
+  avgDailyConsumption: Decimal;
   coverageDays: number | null;
   leadTimeDays: number;
   leadTimeSource: 'measured' | 'estimated';
@@ -74,7 +79,7 @@ export interface ItemBalance {
 
 /** Classifies the lots of one item: status by the item's own alert lead time, FEFO order, suggested lot. */
 export function classifyLots(lots: LotInput[], alertLeadDays: number, today: Date): LotView[] {
-  const ordered = lots.filter((l) => l.quantity > 0).sort(fefoOrder);
+  const ordered = lots.filter((l) => dec(l.quantity).gt(0)).sort(fefoOrder);
   let suggestedFound = false;
   return ordered.map((lot) => {
     const dated = lot.expiresOn !== null;
@@ -82,7 +87,7 @@ export function classifyLots(lots: LotInput[], alertLeadDays: number, today: Dat
     const usable = status !== 'expired';
     const suggested = usable && !suggestedFound;
     if (suggested) suggestedFound = true;
-    return { ...lot, status, daysToExpiry: dated ? daysUntil(lot.expiresOn as string, today) : null, usable, suggested };
+    return { ...lot, quantity: dec(lot.quantity), status, daysToExpiry: dated ? daysUntil(lot.expiresOn as string, today) : null, usable, suggested };
   });
 }
 
@@ -91,7 +96,7 @@ export interface BalanceInput {
   /** Lots of the item (zero-quantity lots are ignored). */
   lots: LotInput[];
   /** RN-02: consumption minus returns over the last 30 days, in the item's unit. */
-  netConsumptionLast30Days: number;
+  netConsumptionLast30Days: Quantity;
   /** RN-03: order and receipt dates of the item's non-reversed receipts. */
   leadTimeSamples: LeadTimeSample[];
   /** RF-04: safety margin in percent (default 20). */
@@ -105,7 +110,7 @@ export function computeBalance(input: BalanceInput): ItemBalance {
   const { item, today } = input;
   const lots = classifyLots(input.lots, item.expiryAlertLeadDays, today);
 
-  const sum = (list: LotView[]) => list.reduce((s, l) => s + l.quantity, 0);
+  const sum = (list: LotView[]) => sumQuantities(list.map((l) => l.quantity));
   const usableLots = lots.filter((l) => l.usable);
   const expired = lots.filter((l) => l.status === 'expired');
   const usableBalance = sum(usableLots);
@@ -139,7 +144,7 @@ export function computeBalance(input: BalanceInput): ItemBalance {
         }
       : null,
     avgDailyConsumption: avg,
-    coverageDays: coverage === null ? null : Math.round(coverage * 100) / 100,
+    coverageDays: coverage === null ? null : coverage.toDecimalPlaces(2, Decimal.ROUND_HALF_CEIL).toNumber(),
     leadTimeDays: Math.round(lead.days * 100) / 100,
     leadTimeSource: lead.source,
     criticalLevel: level,

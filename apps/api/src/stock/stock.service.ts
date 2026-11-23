@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { notImplemented } from '../common/not-implemented';
-import type { LeadTimeSample } from '../domain';
+import { dec, toQuantityString, type LeadTimeSample } from '../domain';
 import { applyBalanceQuery } from './balance-list';
 import { civilToday, dateColumnToCivil } from './civil-date';
 import type { ListBalancesQueryDto } from './dto/list-balances-query.dto';
@@ -10,7 +10,6 @@ import { classifyLots, computeBalance, type ItemBalance } from './stock-metrics'
 
 const DAY_MS = 864e5;
 const DEFAULT_SAFETY_MARGIN_PERCENT = 20;
-const dec = (n: number, places = 3): string => n.toFixed(places);
 
 @Injectable()
 export class StockService {
@@ -32,7 +31,7 @@ export class StockService {
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', detail: 'Insumo não encontrado nesta clínica.' });
 
     const lots = classifyLots(
-      item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: Number(l.quantity) })),
+      item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) })),
       item.expiryAlertLeadDays,
       civilToday(),
     );
@@ -42,7 +41,7 @@ export class StockService {
         id: l.id,
         lotCode: l.lotCode,
         expiresOn: l.expiresOn,
-        quantity: dec(l.quantity),
+        quantity: toQuantityString(l.quantity),
         status: l.status,
         daysToExpiry: l.daysToExpiry,
         usable: l.usable,
@@ -80,7 +79,7 @@ export class StockService {
     ]);
 
     // The ledger stores consumption as negative and returns as positive, so net consumption is minus the sum.
-    const netByItem = new Map(consumption.map((c) => [c.itemId, -Number(c._sum.quantity ?? 0)]));
+    const netByItem = new Map(consumption.map((c) => [c.itemId, dec(c._sum.quantity ?? 0).negated()]));
     const samplesByItem = new Map<string, LeadTimeSample[]>();
     for (const line of receiptLines) {
       const list = samplesByItem.get(line.itemId) ?? [];
@@ -105,8 +104,8 @@ export class StockService {
           expiryAlertLeadDays: item.expiryAlertLeadDays,
           estimatedLeadTimeDays: item.estimatedLeadTimeDays,
         },
-        lots: item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: Number(l.quantity) })),
-        netConsumptionLast30Days: netByItem.get(item.id) ?? 0,
+        lots: item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) })),
+        netConsumptionLast30Days: netByItem.get(item.id) ?? dec(0),
         leadTimeSamples: samplesByItem.get(item.id) ?? [],
         safetyMarginPercent,
         today,
@@ -136,13 +135,13 @@ export function toBalanceDto(b: ItemBalance): ItemBalanceDto {
     tracksLotAndExpiry: b.item.tracksLotAndExpiry,
     recordsTemperature: b.item.recordsTemperature,
     active: b.item.active,
-    balance: dec(b.balance),
-    usableBalance: dec(b.usableBalance),
-    expiredQuantity: dec(b.expiredQuantity),
+    balance: toQuantityString(b.balance),
+    usableBalance: toQuantityString(b.usableBalance),
+    expiredQuantity: toQuantityString(b.expiredQuantity),
     expiredLots: b.expiredLots,
     expiringLots: b.expiringLots,
     nearestExpiry: b.nearestExpiry,
-    avgDailyConsumption: dec(b.avgDailyConsumption),
+    avgDailyConsumption: toQuantityString(b.avgDailyConsumption),
     coverageDays: b.coverageDays,
     leadTimeDays: b.leadTimeDays,
     leadTimeSource: b.leadTimeSource,
