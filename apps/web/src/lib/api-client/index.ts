@@ -7,14 +7,21 @@
  */
 import type {
   BalancePageDto,
+  CatalogItemDto,
+  CatalogItemPageDto,
+  CategoryDto,
+  CreateCategoryDto,
   CreateItemDto,
   CreateReceiptDto,
   CreateReturnDto,
   CreateWithdrawalDto,
+  ItemsControllerListParams,
   LotListDto,
   MyPermissionsDto,
   ProblemDetailsDto,
-  StockControllerBalancesParams
+  StockControllerBalancesParams,
+  UpdateCategoryDto,
+  UpdateItemDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -99,7 +106,7 @@ export const healthControllerReady = async ( options?: Parameters<typeof customF
 
 
 export type itemsControllerListResponse200 = {
-  data: void
+  data: CatalogItemPageDto
   status: 200
 }
 
@@ -110,20 +117,29 @@ export type itemsControllerListResponseSuccess = (itemsControllerListResponse200
 
 export type itemsControllerListResponse = (itemsControllerListResponseSuccess)
 
-export const getItemsControllerListUrl = (clinicId: string,) => {
+export const getItemsControllerListUrl = (clinicId: string,
+    params?: ItemsControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/items`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/items?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/items`
 }
 
 /**
  * @summary Lista insumos (busca por código, categoria, situação) (E-01)
  */
-export const itemsControllerList = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<itemsControllerListResponse> => {
+export const itemsControllerList = async (clinicId: string,
+    params?: ItemsControllerListParams, options?: Parameters<typeof customFetch>[1]): Promise<itemsControllerListResponse> => {
 
-  return customFetch<itemsControllerListResponse>(getItemsControllerListUrl(clinicId),
+  return customFetch<itemsControllerListResponse>(getItemsControllerListUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
@@ -135,7 +151,7 @@ export const itemsControllerList = async (clinicId: string, options?: Parameters
 
 
 export type itemsControllerCreateResponse201 = {
-  data: void
+  data: CatalogItemDto
   status: 201
 }
 
@@ -186,7 +202,7 @@ return customFetch<itemsControllerCreateResponse>(getItemsControllerCreateUrl(cl
 
 
 export type itemsControllerDetailResponse200 = {
-  data: void
+  data: CatalogItemDto
   status: 200
 }
 
@@ -224,16 +240,28 @@ export const itemsControllerDetail = async (clinicId: string,
 
 
 export type itemsControllerUpdateResponse200 = {
-  data: void
+  data: CatalogItemDto
   status: 200
+}
+
+export type itemsControllerUpdateResponse412 = {
+  data: void
+  status: 412
+}
+
+export type itemsControllerUpdateResponse428 = {
+  data: void
+  status: 428
 }
 
 export type itemsControllerUpdateResponseSuccess = (itemsControllerUpdateResponse200) & {
   headers: Headers;
 };
-;
+export type itemsControllerUpdateResponseError = (itemsControllerUpdateResponse412 | itemsControllerUpdateResponse428) & {
+  headers: Headers;
+};
 
-export type itemsControllerUpdateResponse = (itemsControllerUpdateResponseSuccess)
+export type itemsControllerUpdateResponse = (itemsControllerUpdateResponseSuccess | itemsControllerUpdateResponseError)
 
 export const getItemsControllerUpdateUrl = (clinicId: string,
     itemId: string,) => {
@@ -248,25 +276,40 @@ export const getItemsControllerUpdateUrl = (clinicId: string,
  * @summary Altera insumo (If-Match obrigatório; o código não muda) (E-04)
  */
 export const itemsControllerUpdate = async (clinicId: string,
-    itemId: string, options?: Parameters<typeof customFetch>[1]): Promise<itemsControllerUpdateResponse> => {
+    itemId: string,
+    updateItemDto: UpdateItemDto, options?: Parameters<typeof customFetch>[1]): Promise<itemsControllerUpdateResponse> => {
 
-  return customFetch<itemsControllerUpdateResponse>(getItemsControllerUpdateUrl(clinicId,itemId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<itemsControllerUpdateResponse>(getItemsControllerUpdateUrl(clinicId,itemId),
   {
     ...options,
-    method: 'PATCH'
-
-
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateItemDto)
   }
 );}
 
 
 
-export type itemsControllerDeactivateResponse201 = {
-  data: void
-  status: 201
+export type itemsControllerDeactivateResponse200 = {
+  data: CatalogItemDto
+  status: 200
 }
 
-export type itemsControllerDeactivateResponseSuccess = (itemsControllerDeactivateResponse201) & {
+export type itemsControllerDeactivateResponseSuccess = (itemsControllerDeactivateResponse200) & {
   headers: Headers;
 };
 ;
@@ -299,12 +342,12 @@ export const itemsControllerDeactivate = async (clinicId: string,
 
 
 
-export type itemsControllerReactivateResponse201 = {
-  data: void
-  status: 201
+export type itemsControllerReactivateResponse200 = {
+  data: CatalogItemDto
+  status: 200
 }
 
-export type itemsControllerReactivateResponseSuccess = (itemsControllerReactivateResponse201) & {
+export type itemsControllerReactivateResponseSuccess = (itemsControllerReactivateResponse200) & {
   headers: Headers;
 };
 ;
@@ -338,7 +381,7 @@ export const itemsControllerReactivate = async (clinicId: string,
 
 
 export type itemsControllerUnitsResponse200 = {
-  data: void
+  data: string[]
   status: 200
 }
 
@@ -374,7 +417,7 @@ export const itemsControllerUnits = async ( options?: Parameters<typeof customFe
 
 
 export type categoriesControllerListResponse200 = {
-  data: void
+  data: CategoryDto[]
   status: 200
 }
 
@@ -410,7 +453,7 @@ export const categoriesControllerList = async (clinicId: string, options?: Param
 
 
 export type categoriesControllerCreateResponse201 = {
-  data: void
+  data: CategoryDto
   status: 201
 }
 
@@ -432,21 +475,36 @@ export const getCategoriesControllerCreateUrl = (clinicId: string,) => {
 /**
  * @summary Cria categoria (E-08)
  */
-export const categoriesControllerCreate = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<categoriesControllerCreateResponse> => {
+export const categoriesControllerCreate = async (clinicId: string,
+    createCategoryDto: CreateCategoryDto, options?: Parameters<typeof customFetch>[1]): Promise<categoriesControllerCreateResponse> => {
 
-  return customFetch<categoriesControllerCreateResponse>(getCategoriesControllerCreateUrl(clinicId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<categoriesControllerCreateResponse>(getCategoriesControllerCreateUrl(clinicId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createCategoryDto)
   }
 );}
 
 
 
 export type categoriesControllerUpdateResponse200 = {
-  data: void
+  data: CategoryDto
   status: 200
 }
 
@@ -470,14 +528,29 @@ export const getCategoriesControllerUpdateUrl = (clinicId: string,
  * @summary Renomeia ou inativa (recusa se há insumo ativo) (E-08)
  */
 export const categoriesControllerUpdate = async (clinicId: string,
-    categoryId: string, options?: Parameters<typeof customFetch>[1]): Promise<categoriesControllerUpdateResponse> => {
+    categoryId: string,
+    updateCategoryDto: UpdateCategoryDto, options?: Parameters<typeof customFetch>[1]): Promise<categoriesControllerUpdateResponse> => {
 
-  return customFetch<categoriesControllerUpdateResponse>(getCategoriesControllerUpdateUrl(clinicId,categoryId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<categoriesControllerUpdateResponse>(getCategoriesControllerUpdateUrl(clinicId,categoryId),
   {
     ...options,
-    method: 'PATCH'
-
-
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateCategoryDto)
   }
 );}
 

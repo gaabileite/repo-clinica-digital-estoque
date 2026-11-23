@@ -73,11 +73,91 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Código exato do insumo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "ID da categoria.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "true",
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor retornado pela página anterior.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemPageDto"
+                }
+              }
+            }
           }
         },
         "summary": "Lista insumos (busca por código, categoria, situação) (E-01)",
@@ -109,7 +189,22 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Versão do insumo, entre aspas."
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemDto"
+                }
+              }
+            }
           }
         },
         "summary": "Cria insumo; o código INS-0001 é gerado pelo sistema (E-02)",
@@ -141,7 +236,22 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Versão para enviar em If-Match."
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemDto"
+                }
+              }
+            }
           }
         },
         "summary": "Detalhe do insumo (E-03)",
@@ -167,11 +277,50 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag recebido no detalhe do insumo.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemDto"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Versão desatualizada."
+          },
+          "428": {
+            "description": "If-Match ausente."
           }
         },
         "summary": "Altera insumo (If-Match obrigatório; o código não muda) (E-04)",
@@ -202,8 +351,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemDto"
+                }
+              }
+            }
           }
         },
         "summary": "Inativa o insumo (nunca apaga se há saldo) (E-05)",
@@ -234,8 +390,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemDto"
+                }
+              }
+            }
           }
         },
         "summary": "Reativa o insumo (E-05)",
@@ -250,7 +413,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Lista de unidades de medida (E-06)",
@@ -274,7 +447,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Categorias de insumo da clínica, com nº de insumos (E-07)",
@@ -294,9 +477,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
           }
         },
         "summary": "Cria categoria (E-08)",
@@ -326,9 +526,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
           }
         },
         "summary": "Renomeia ou inativa (recusa se há insumo ativo) (E-08)",
@@ -1955,6 +2172,99 @@
           "timestamp"
         ]
       },
+      "CatalogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "tracksLotAndExpiry": {
+            "type": "boolean"
+          },
+          "expiryAlertLeadDays": {
+            "type": "number"
+          },
+          "recordsTemperature": {
+            "type": "boolean"
+          },
+          "temperatureRange": {
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedLeadTimeDays": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "number",
+            "description": "Versão usada no ETag."
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "categoryId",
+          "unit",
+          "tracksLotAndExpiry",
+          "expiryAlertLeadDays",
+          "recordsTemperature",
+          "temperatureRange",
+          "estimatedLeadTimeDays",
+          "active",
+          "version"
+        ]
+      },
+      "ItemPageMetaDto": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "nextCursor",
+          "total"
+        ]
+      },
+      "CatalogItemPageDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogItemDto"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/ItemPageMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "page"
+        ]
+      },
       "CreateItemDto": {
         "type": "object",
         "properties": {
@@ -2002,6 +2312,102 @@
           "tracksLotAndExpiry",
           "estimatedLeadTimeDays"
         ]
+      },
+      "UpdateItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Luva de procedimento M (cx 100)"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Categoria de insumo da clínica (RF-06)."
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "recordsTemperature": {
+            "type": "boolean",
+            "description": "Se registra temperatura de armazenamento."
+          },
+          "temperatureRange": {
+            "type": "string",
+            "example": "2 a 8 °C",
+            "description": "Faixa de temperatura, quando registra temperatura."
+          },
+          "tracksLotAndExpiry": {
+            "type": "boolean",
+            "description": "Controle de lote e validade (opcional por insumo)."
+          },
+          "estimatedLeadTimeDays": {
+            "type": "number",
+            "example": 7,
+            "description": "Tempo de reposição estimado, em dias (RN-03)."
+          },
+          "expiryAlertLeadDays": {
+            "type": "number",
+            "example": 30,
+            "default": 30,
+            "description": "Antecedência do alerta de validade, em dias (RF-08)."
+          }
+        }
+      },
+      "CategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "itemCount": {
+            "type": "number",
+            "description": "Quantidade total de insumos vinculados."
+          },
+          "activeItemCount": {
+            "type": "number",
+            "description": "Quantidade de insumos ativos vinculados."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "active",
+          "itemCount",
+          "activeItemCount"
+        ]
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "EPI",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "EPI",
+            "maxLength": 120
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
       },
       "NearestExpiryDto": {
         "type": "object",
