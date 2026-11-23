@@ -1899,7 +1899,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolePermissionsDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Perfis do módulo e suas permissões (E-51)",
@@ -1910,6 +1920,7 @@
     },
     "/api/v1/roles/{role}/permissions": {
       "put": {
+        "description": "Vale a partir da requisição seguinte. O superuser não pode perder stock:admin e nenhum perfil recebe stock:service.",
         "operationId": "PermissionsController_replace",
         "parameters": [
           {
@@ -1921,9 +1932,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceRolePermissionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolePermissionsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Substitui as permissões de um perfil (RF-03) (E-52)",
@@ -2935,6 +2963,85 @@
           "profile",
           "permissions",
           "clinics"
+        ]
+      },
+      "RolePermissionsDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "superuser",
+              "admin",
+              "warehouse",
+              "budget-controller"
+            ],
+            "example": "warehouse"
+          },
+          "permissions": {
+            "type": "array",
+            "example": [
+              "stock:read",
+              "stock:withdraw"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "stock:read",
+                "stock:network:read",
+                "stock:withdraw",
+                "stock:receive",
+                "stock:adjust",
+                "stock:reverse",
+                "stock:catalog:write",
+                "stock:reports",
+                "stock:audit",
+                "stock:admin",
+                "stock:service",
+                "stock:budget:read",
+                "stock:budget:cost:write",
+                "stock:budget:switch"
+              ]
+            }
+          }
+        },
+        "required": [
+          "role",
+          "permissions"
+        ]
+      },
+      "ReplaceRolePermissionsDto": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "example": [
+              "stock:read",
+              "stock:withdraw"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "stock:read",
+                "stock:network:read",
+                "stock:withdraw",
+                "stock:receive",
+                "stock:adjust",
+                "stock:reverse",
+                "stock:catalog:write",
+                "stock:reports",
+                "stock:audit",
+                "stock:admin",
+                "stock:service",
+                "stock:budget:read",
+                "stock:budget:cost:write",
+                "stock:budget:switch"
+              ]
+            }
+          }
+        },
+        "required": [
+          "permissions"
         ]
       }
     }
