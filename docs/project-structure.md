@@ -124,7 +124,7 @@ Pastas de apoio:
 | `common/dto/problem-details.dto.ts` | Formato de erro (RFC 9457) exposto no OpenAPI. |
 | `common/filters/problem-details.filter.spec.ts` | Testes do filtro de erro. |
 | `common/filters/problem-details.filter.ts` | Converte qualquer erro em resposta `application/problem+json`. |
-| `common/idempotency/idempotency.ts` | Exige o cabeçalho `Idempotency-Key` nos POSTs que mexem no saldo. A guarda das respostas ainda é pendência. |
+| `common/idempotency/idempotency.ts` | Exige o cabeçalho `Idempotency-Key` nos POSTs que mexem no saldo e guarda a resposta por 72 h (`idempotency_records`, chave por usuário): mesma chave e mesmo corpo repetem a resposta original; corpo diferente dá 422 `IDEMPOTENCY_CONFLICT`. |
 | `common/not-implemented.ts` | Ajudante que devolve 501 nas operações ainda não implementadas. |
 | `common/observability/error-monitoring.service.ts` | Ponto único para reportar erros inesperados. |
 | `common/observability/logging.interceptor.ts` | Registra cada requisição sem gravar o corpo. |
