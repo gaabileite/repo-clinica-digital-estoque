@@ -71,11 +71,26 @@ describe('PermissionMatrixService', () => {
     expect(service.permissionsOf('admin')).toEqual(DEFAULT_PERMISSIONS.admin);
   });
 
-  it('keeps the current matrix when the database cannot be read', async () => {
+    it('refuses to start when the first read fails, so restricted permissions are not silently reopened', async () => {
     const { service, prisma } = setup();
     prisma.rolePermission.findMany.mockRejectedValue(new Error('db down'));
+    await expect(service.onModuleInit()).rejects.toThrow(/role_permissions/);
+  });
+
+  it('loads the saved matrix when it starts', async () => {
+    const { service, prisma } = setup();
+    prisma.rolePermission.findMany.mockResolvedValue([{ profile: 'WAREHOUSE', permission: 'stock:read' }]);
+    await service.onModuleInit();
+    expect(service.permissionsOf('warehouse')).toEqual(['stock:read']);
+  });
+
+  it('keeps the restricted matrix in memory when a later reload fails (it never goes back to the defaults)', async () => {
+    const { service, prisma } = setup();
+    prisma.rolePermission.findMany.mockResolvedValue([{ profile: 'WAREHOUSE', permission: 'stock:read' }]);
+    await service.onModuleInit();
+    prisma.rolePermission.findMany.mockRejectedValue(new Error('db down'));
     await service.reload();
-    expect(service.permissionsOf('admin')).toEqual(DEFAULT_PERMISSIONS.admin);
+    expect(service.permissionsOf('warehouse')).toEqual(['stock:read']);
   });
 
   it('lists the four profiles', () => {

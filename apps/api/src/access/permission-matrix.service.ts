@@ -66,8 +66,19 @@ export class PermissionMatrixService implements OnModuleInit {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * The first read must work. If it fails and the API started with the defaults, any restriction the
+   * superuser saved would be silently undone (the defaults are more permissive), so it refuses to start.
+   */
   async onModuleInit(): Promise<void> {
-    await this.reload();
+    try {
+      await this.load();
+    } catch (error) {
+      throw new Error(
+        'Não foi possível ler a matriz de permissões (role_permissions) ao iniciar. A API não sobe para não reabrir permissões que o superuser restringiu.',
+        { cause: error },
+      );
+    }
   }
 
   /** Synchronous on purpose: the guard calls this on every request. */
@@ -79,15 +90,12 @@ export class PermissionMatrixService implements OnModuleInit {
     return PROFILES.map((role) => ({ role, permissions: [...this.matrix[role]] }));
   }
 
-  /** Reads the saved matrix. If the database cannot be read, the current matrix is kept. */
+  /** Reads the saved matrix again. If that fails, the matrix already in memory is kept (it never goes back to the defaults). */
   async reload(): Promise<void> {
     try {
-      const rows = await this.prisma.rolePermission.findMany();
-      this.matrix = buildMatrix(
-        rows.map((row) => ({ profile: FROM_DB_PROFILE[row.profile], permission: row.permission })),
-      );
+      await this.load();
     } catch (error) {
-      this.logger.warn(`Could not read role_permissions, keeping the current matrix: ${String(error)}`);
+      this.logger.warn(`Could not re-read role_permissions, keeping the matrix in memory: ${String(error)}`);
     }
   }
 
@@ -119,5 +127,10 @@ export class PermissionMatrixService implements OnModuleInit {
     // Only after the transaction succeeded, so a failed save never changes who can do what.
     this.matrix = { ...this.matrix, [profile]: unique };
     return { role: profile, permissions: [...unique] };
+  }
+
+  private async load(): Promise<void> {
+    const rows = await this.prisma.rolePermission.findMany();
+    this.matrix = buildMatrix(rows.map((row) => ({ profile: FROM_DB_PROFILE[row.profile], permission: row.permission })));
   }
 }

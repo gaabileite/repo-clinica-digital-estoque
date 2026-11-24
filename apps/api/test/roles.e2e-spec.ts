@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -40,6 +40,15 @@ async function createApp(): Promise<INestApplication> {
     .useValue(fakeCategories)
     .compile();
   const app = moduleRef.createNestApplication();
+  // The same pipe as main.ts: without it, this test would not see what a real client sees (400 for a bad body).
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
   await app.init();
   return app;
 }
@@ -98,8 +107,26 @@ describe('editing the permission matrix (e2e)', () => {
 
   const get = (token: Token, path: string) =>
     request(app.getHttpServer()).get(path).set('Authorization', `Bearer ${token}`);
-  const put = (token: Token, role: string, permissions: string[]) =>
+  const put = (token: Token, role: string, permissions: unknown) =>
     request(app.getHttpServer()).put(`/roles/${role}/permissions`).set('Authorization', `Bearer ${token}`).send({ permissions });
+
+  it('answers 422 STOCK_PERMISSIONS_EMPTY for an empty list (the pipe does not turn it into a 400)', async () => {
+    const response = await put('token-superuser', 'warehouse', []).expect(422);
+    expect(response.body.code).toBe('STOCK_PERMISSIONS_EMPTY');
+  });
+
+  it('accepts repeated permissions and saves them once (the pipe does not turn them into a 400)', async () => {
+    const response = await put('token-superuser', 'budget-controller', ['stock:budget:read', 'stock:budget:read']).expect(200);
+    expect(response.body).toEqual({ role: 'budget-controller', permissions: ['stock:budget:read'] });
+  });
+
+  it('answers 400 for a permission that does not exist', async () => {
+    await put('token-superuser', 'warehouse', ['stock:read', 'stock:nope']).expect(400);
+  });
+
+  it('answers 400 when the list is not a list', async () => {
+    await put('token-superuser', 'warehouse', 'stock:read').expect(400);
+  });
 
   it('refuses to take stock:admin away from the superuser', async () => {
     const response = await put('token-superuser', 'superuser', ['stock:read']).expect(422);
