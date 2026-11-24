@@ -978,6 +978,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Chave de idempotência: reenviar com o mesmo corpo devolve a resposta original.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -992,7 +1009,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalDto"
+                }
+              }
+            }
           }
         },
         "summary": "Retirada pelo código do insumo, com lote sugerido pelo FEFO (E-18)",
@@ -1206,11 +1230,117 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "itemId",
+            "required": false,
+            "in": "query",
+            "description": "Insumo (id).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Código do insumo, ex.: INS-0001.",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Categoria da movimentação.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "consumption",
+                "expiry-loss",
+                "damage-discard",
+                "loan",
+                "donation",
+                "entry",
+                "reversal",
+                "inventory-adjustment",
+                "return"
+              ]
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "Usuário que fez a movimentação (id).",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "name": "lot",
+            "required": false,
+            "in": "query",
+            "description": "Código do lote (contém, sem diferenciar maiúsculas).",
+            "schema": {
+              "maxLength": 60,
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Início do período: data civil (começa à 00:00 de America/Recife) ou instante ISO 8601 com fuso.",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Fim do período: data civil (vale o dia inteiro, até 23:59 de America/Recife) ou instante ISO 8601 com fuso.",
+            "schema": {
+              "example": "2026-11-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor da página seguinte (`page.nextCursor`).",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementPageDto"
+                }
+              }
+            }
           }
         },
         "summary": "Livro de movimentações (cursor, filtros) (E-39)",
@@ -2910,7 +3040,7 @@
           "quantity": {
             "type": "string",
             "example": "2.000",
-            "description": "Decimal em string, sem float."
+            "description": "Decimal positivo em string, até 3 casas."
           },
           "kind": {
             "type": "string",
@@ -2924,21 +3054,249 @@
           },
           "lotId": {
             "type": "string",
-            "description": "Escolhe outro lote que não o sugerido (gera aviso, RN-09)."
+            "description": "Escolhe outro lote que não o sugerido (RN-09). Obrigatório na perda por validade."
           },
           "recipient": {
             "type": "string",
-            "description": "Obrigatório em empréstimo e doação."
+            "description": "Obrigatório em empréstimo e doação.",
+            "maxLength": 200
           },
           "reason": {
             "type": "string",
-            "description": "Obrigatório em descarte por avaria e nos demais tipos que não são consumo."
+            "description": "Obrigatório em descarte por avaria e perda por validade.",
+            "maxLength": 500
           }
         },
         "required": [
           "code",
           "quantity",
           "kind"
+        ]
+      },
+      "WithdrawalItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "MovementItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "Categoria do insumo."
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit",
+          "categoryName"
+        ]
+      },
+      "MovementLotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210",
+            "description": "Lote como estava na movimentação (RNF-14)."
+          },
+          "expiresOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2027-06-02",
+            "description": "Validade na movimentação, data civil."
+          }
+        },
+        "required": [
+          "id",
+          "lotCode",
+          "expiresOn"
+        ]
+      },
+      "MovementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Instante da movimentação, ISO 8601 UTC."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consumption",
+              "expiry-loss",
+              "damage-discard",
+              "loan",
+              "donation",
+              "entry",
+              "reversal",
+              "inventory-adjustment",
+              "return"
+            ],
+            "description": "Uma das nove categorias do livro (RF-14)."
+          },
+          "item": {
+            "$ref": "#/components/schemas/MovementItemDto"
+          },
+          "lot": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementLotDto"
+              }
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "example": "-2.000",
+            "description": "Positivo entra no estoque, negativo sai. Decimal em string."
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipient": {
+            "type": "string",
+            "nullable": true,
+            "description": "Destinatário de empréstimo ou doação."
+          },
+          "returnedBy": {
+            "type": "string",
+            "nullable": true,
+            "description": "Quem devolveu (devolução)."
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do usuário, do cache do IAM."
+          },
+          "origin": {
+            "type": "string",
+            "nullable": true,
+            "example": "manual"
+          },
+          "reversalOfId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Movimentação que este estorno desfaz."
+          },
+          "reversedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Estorno que desfez esta movimentação."
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "kind",
+          "item",
+          "lot",
+          "quantity",
+          "reason",
+          "recipient",
+          "returnedBy",
+          "userId",
+          "userName",
+          "origin",
+          "reversalOfId",
+          "reversedById"
+        ]
+      },
+      "WithdrawalDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/WithdrawalItemDto"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consumption",
+              "expiry-loss",
+              "damage-discard",
+              "loan",
+              "donation"
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "example": "4.000",
+            "description": "Quantidade total retirada, positiva."
+          },
+          "movements": {
+            "description": "Um lançamento por lote usado, na ordem de saída (FEFO).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementDto"
+            }
+          },
+          "usableBalance": {
+            "type": "string",
+            "example": "8.000",
+            "description": "Saldo utilizável do insumo depois da retirada (sem lotes vencidos)."
+          },
+          "warnings": {
+            "description": "Avisos da retirada (`LOT_NOT_NEAREST_EXPIRY`, `QUANTITY_ABOVE_DAILY_AVERAGE`). Preenchido na E4-H2; hoje vem vazio.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "item",
+          "kind",
+          "quantity",
+          "movements",
+          "usableBalance",
+          "warnings"
         ]
       },
       "CreateReturnDto": {
@@ -2975,6 +3333,41 @@
           "code",
           "quantity",
           "returnedBy"
+        ]
+      },
+      "MovementPageMetaDto": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "number",
+            "description": "Movimentações que atendem aos filtros."
+          }
+        },
+        "required": [
+          "nextCursor",
+          "total"
+        ]
+      },
+      "MovementPageDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementDto"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/MovementPageMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "page"
         ]
       },
       "ReceiptLineDto": {
