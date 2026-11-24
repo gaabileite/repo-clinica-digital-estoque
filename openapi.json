@@ -1270,11 +1270,37 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Chave única da operação (contrato, seção 2).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdjustmentDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdjustmentDto"
+                }
+              }
+            }
           }
         },
         "summary": "Ajuste de inventário de um lote, com justificativa (E-26)",
@@ -2975,6 +3001,64 @@
           "code",
           "quantity",
           "returnedBy"
+        ]
+      },
+      "CreateAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "countedQuantity": {
+            "type": "string",
+            "example": "12.500",
+            "description": "Quantidade contada no lote: decimal não negativo, até 3 casas (zero é permitido)."
+          },
+          "justification": {
+            "type": "string",
+            "example": "Contagem física de novembro",
+            "maxLength": 500,
+            "description": "Obrigatória: se vazia, a API responde 422 STOCK_JUSTIFICATION_REQUIRED."
+          }
+        },
+        "required": [
+          "countedQuantity"
+        ]
+      },
+      "AdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "movementId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id da movimentação gerada; nulo quando a contagem era igual ao saldo e nada mudou."
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "previousQuantity": {
+            "type": "string",
+            "example": "10.000",
+            "description": "Saldo do lote antes do ajuste."
+          },
+          "countedQuantity": {
+            "type": "string",
+            "example": "8.000",
+            "description": "Quantidade contada, que passa a ser o saldo do lote."
+          },
+          "difference": {
+            "type": "string",
+            "example": "-2.000",
+            "description": "Contado menos o saldo anterior (negativo = faltava no sistema)."
+          }
+        },
+        "required": [
+          "movementId",
+          "lotId",
+          "itemId",
+          "previousQuantity",
+          "countedQuantity",
+          "difference"
         ]
       },
       "ReceiptLineDto": {

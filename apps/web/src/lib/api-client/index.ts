@@ -6,12 +6,14 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AdjustmentDto,
   AvailabilityDto,
   BalancePageDto,
   CatalogItemDto,
   CatalogItemPageDto,
   CategoryDto,
   ConsumptionProfileDto,
+  CreateAdjustmentDto,
   CreateCategoryDto,
   CreateItemDto,
   CreateReceiptDto,
@@ -1272,7 +1274,7 @@ export const movementsControllerReverse = async (clinicId: string,
 
 
 export type inventoryAdjustmentsControllerCreateResponse201 = {
-  data: void
+  data: AdjustmentDto
   status: 201
 }
 
@@ -1296,14 +1298,29 @@ export const getInventoryAdjustmentsControllerCreateUrl = (clinicId: string,
  * @summary Ajuste de inventário de um lote, com justificativa (E-26)
  */
 export const inventoryAdjustmentsControllerCreate = async (clinicId: string,
-    lotId: string, options?: Parameters<typeof customFetch>[1]): Promise<inventoryAdjustmentsControllerCreateResponse> => {
+    lotId: string,
+    createAdjustmentDto: CreateAdjustmentDto, options?: Parameters<typeof customFetch>[1]): Promise<inventoryAdjustmentsControllerCreateResponse> => {
 
-  return customFetch<inventoryAdjustmentsControllerCreateResponse>(getInventoryAdjustmentsControllerCreateUrl(clinicId,lotId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<inventoryAdjustmentsControllerCreateResponse>(getInventoryAdjustmentsControllerCreateUrl(clinicId,lotId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAdjustmentDto)
   }
 );}
 
