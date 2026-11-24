@@ -76,7 +76,7 @@ function sortValue(b: ItemBalance, field: BalanceSortField): number | string | n
   switch (field) {
     case 'name': return b.item.name;
     case 'code': return b.item.code;
-    case 'balance': return b.balance;
+    case 'balance': return b.balance.toNumber();
     case 'criticalLevel': return b.criticalLevel;
     case 'coverageDays': return b.coverageDays;
     case 'nearestExpiry': return b.nearestExpiry ? b.nearestExpiry.expiresOn : null;

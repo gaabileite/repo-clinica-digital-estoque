@@ -6,10 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AvailabilityDto,
   BalancePageDto,
   CatalogItemDto,
   CatalogItemPageDto,
   CategoryDto,
+  ConsumptionProfileDto,
   CreateCategoryDto,
   CreateItemDto,
   CreateReceiptDto,
@@ -19,6 +21,7 @@ import type {
   LotListDto,
   MyPermissionsDto,
   ProblemDetailsDto,
+  StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
   UpdateItemDto
@@ -750,7 +753,7 @@ export const stockControllerLots = async (clinicId: string,
 
 
 export type stockControllerAvailabilityResponse200 = {
-  data: void
+  data: AvailabilityDto
   status: 200
 }
 
@@ -762,21 +765,30 @@ export type stockControllerAvailabilityResponseSuccess = (stockControllerAvailab
 export type stockControllerAvailabilityResponse = (stockControllerAvailabilityResponseSuccess)
 
 export const getStockControllerAvailabilityUrl = (clinicId: string,
-    itemId: string,) => {
+    itemId: string,
+    params: StockControllerAvailabilityParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/items/${itemId}/availability`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/items/${itemId}/availability?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/items/${itemId}/availability`
 }
 
 /**
  * @summary Disponibilidade para consumo e lote sugerido (E-14)
  */
 export const stockControllerAvailability = async (clinicId: string,
-    itemId: string, options?: Parameters<typeof customFetch>[1]): Promise<stockControllerAvailabilityResponse> => {
+    itemId: string,
+    params: StockControllerAvailabilityParams, options?: Parameters<typeof customFetch>[1]): Promise<stockControllerAvailabilityResponse> => {
 
-  return customFetch<stockControllerAvailabilityResponse>(getStockControllerAvailabilityUrl(clinicId,itemId),
+  return customFetch<stockControllerAvailabilityResponse>(getStockControllerAvailabilityUrl(clinicId,itemId,params),
   {
     ...options,
     method: 'GET'
@@ -788,7 +800,7 @@ export const stockControllerAvailability = async (clinicId: string,
 
 
 export type stockControllerConsumptionProfileResponse200 = {
-  data: void
+  data: ConsumptionProfileDto
   status: 200
 }
 
