@@ -28,7 +28,7 @@ export const PAGES: PageDef[] = [
   { id: 'stock', label: 'Estoque', component: StockPage, permission: 'stock:read', inNav: true },
   { id: 'withdrawals', label: 'Saídas', component: WithdrawalsPage, permission: 'stock:withdraw', inNav: true },
   { id: 'returns', label: 'Devolução', component: ReturnsPage, permission: 'stock:withdraw', inNav: true },
-  { id: 'receipts', label: 'Entradas', component: ReceiptsPage, permission: 'stock:receive', inNav: true },
+  { id: 'receipts', label: 'Entradas', component: ReceiptsPage, permission: ['stock:read', 'stock:receive'], inNav: true },
   { id: 'movements', label: 'Movimentações', component: MovementsPage, permission: 'stock:read', inNav: true },
   { id: 'reports', label: 'Relatórios', component: ReportsPage, permission: 'stock:reports', inNav: true },
   { id: 'registrations', label: 'Cadastros', component: RegistrationsPage, permission: ['stock:admin', 'stock:catalog:write', 'stock:budget:cost:write'], inNav: true },
