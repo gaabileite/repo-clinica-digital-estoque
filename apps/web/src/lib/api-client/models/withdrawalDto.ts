@@ -8,6 +8,7 @@
 import type { MovementDto } from './movementDto';
 import type { WithdrawalDtoKind } from './withdrawalDtoKind';
 import type { WithdrawalItemDto } from './withdrawalItemDto';
+import type { WithdrawalWarningDto } from './withdrawalWarningDto';
 
 export interface WithdrawalDto {
   item: WithdrawalItemDto;
@@ -18,6 +19,6 @@ export interface WithdrawalDto {
   movements: MovementDto[];
   /** Saldo utilizável do insumo depois da retirada (sem lotes vencidos). */
   usableBalance: string;
-  /** Avisos da retirada (`LOT_NOT_NEAREST_EXPIRY`, `QUANTITY_ABOVE_DAILY_AVERAGE`). Preenchido na E4-H2; hoje vem vazio. */
-  warnings: string[];
+  /** Avisos da retirada (RN-09 e RN-10). Cada um gerou um alerta ao Administrador. A tela os mostra antes de confirmar pela E-14. */
+  warnings: WithdrawalWarningDto[];
 }

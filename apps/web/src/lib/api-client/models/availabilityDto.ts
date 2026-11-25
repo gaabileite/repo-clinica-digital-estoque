@@ -7,6 +7,7 @@
  */
 import type { LotAllocationDto } from './lotAllocationDto';
 import type { SuggestedLotDto } from './suggestedLotDto';
+import type { WithdrawalWarningDto } from './withdrawalWarningDto';
 
 export interface AvailabilityDto {
   requestedQuantity: string;
@@ -23,6 +24,10 @@ export interface AvailabilityDto {
      * @nullable
      */
   suggestedLot: SuggestedLotDto | null;
+  /** RN-09: o lote escolhido (`lotId`) não é o de validade mais próxima. */
+  notNearest: boolean;
   /** Como a retirada sairia dos lotes; vazio sem saldo suficiente. */
   allocations: LotAllocationDto[];
+  /** Avisos que a retirada geraria (RN-09 e RN-10), para a tela mostrar antes de confirmar. */
+  warnings: WithdrawalWarningDto[];
 }

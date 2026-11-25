@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { WithdrawalWarningDto } from '../../withdrawals/dto/withdrawal-response.dto';
 
 const LOT_STATUS = ['valid', 'expiring', 'expired', 'no-expiry'] as const;
 const SITUATIONS = ['adequate', 'reorder', 'critical', 'out-of-stock'] as const;
@@ -94,8 +95,11 @@ export class AvailabilityDto {
   @ApiProperty({ example: '0.000', description: 'Quanto falta para cobrir o pedido.' }) shortfall!: string;
   @ApiProperty({ type: () => SuggestedLotDto, nullable: true, description: 'Primeiro lote utilizável na ordem FEFO (RN-04).' })
   suggestedLot!: SuggestedLotDto | null;
+  @ApiProperty({ description: 'RN-09: o lote escolhido (`lotId`) não é o de validade mais próxima.' }) notNearest!: boolean;
   @ApiProperty({ type: () => [LotAllocationDto], description: 'Como a retirada sairia dos lotes; vazio sem saldo suficiente.' })
   allocations!: LotAllocationDto[];
+  @ApiProperty({ type: () => [WithdrawalWarningDto], description: 'Avisos que a retirada geraria (RN-09 e RN-10), para a tela mostrar antes de confirmar.' })
+  warnings!: WithdrawalWarningDto[];
 }
 
 export class ConsumptionProfileDto {

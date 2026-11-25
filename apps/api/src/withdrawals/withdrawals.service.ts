@@ -1,7 +1,9 @@
 import { ConflictException, HttpException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { storageKey } from '../common/idempotency/idempotency';
-import { dec, toQuantityString } from '../domain';
+import { averageDailyConsumption, DEFAULT_HIGH_WITHDRAWAL_MULTIPLIER, dec, toQuantityString } from '../domain';
+import { raiseUsageAlert } from '../alerts/usage-alerts';
+import { netConsumption, numberSetting } from '../stock/consumption-query';
 import { EventPublisher } from '../events/event-publisher.service';
 import { movementInclude, toMovementDto } from '../movements/movement-mapper';
 import { kindToDb } from '../movements/movement-kinds';
@@ -11,6 +13,7 @@ import { civilToday, civilToIso, dateColumnToCivil } from '../stock/civil-date';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 import type { WithdrawalDto } from './dto/withdrawal-response.dto';
 import { planWithdrawal, usableBalanceAfter, type WithdrawalLot } from './withdrawal-plan';
+import { ALERT_KIND_BY_WARNING, buildWithdrawalWarnings } from './withdrawal-warnings';
 
 interface LockedLot {
   id: string;
@@ -73,6 +76,22 @@ export class WithdrawalsService {
           throw new HttpException({ code: plan.code, detail: plan.detail }, plan.status);
         }
 
+        // E4-H2 (RN-09, RN-10): avisos calculados antes de gravar; a perda por validade não tem aviso.
+        let warnings: ReturnType<typeof buildWithdrawalWarnings> = [];
+        if (body.kind !== 'expiry-loss') {
+          const now = new Date();
+          const net30 = await netConsumption(tx, clinicId, item.id, new Date(now.getTime() - 30 * 864e5), now);
+          warnings = buildWithdrawalWarnings({
+            quantity: body.quantity,
+            unit: item.unit,
+            notNearest: plan.notNearest,
+            chosenLot: lots.find((l) => l.id === body.lotId) ?? null,
+            suggestedLot: lots.find((l) => l.id === plan.suggestedLotId) ?? null,
+            avgDailyConsumption: averageDailyConsumption(net30),
+            highWithdrawalMultiplier: await numberSetting(tx, 'highWithdrawalMultiplier', DEFAULT_HIGH_WITHDRAWAL_MULTIPLIER),
+          });
+        }
+
         const byId = new Map(locked.map((l) => [l.id, l]));
         const created = [];
         for (const [index, allocation] of plan.allocations.entries()) {
@@ -99,9 +118,10 @@ export class WithdrawalsService {
           created.push(movement);
           await this.events.publish(
             'stock.movement.recorded',
-            `item/${item.id}`,
+            `${clinicId}:${item.id}`,
             {
               movementId: movement.id,
+              clinicId,
               kind: body.kind,
               itemId: item.id,
               lotId: lot.id,
@@ -113,6 +133,20 @@ export class WithdrawalsService {
           );
         }
 
+        // O Administrador é notificado com os detalhes de cada aviso, ao confirmar a saída.
+        for (const warning of warnings) {
+          const meta = ALERT_KIND_BY_WARNING[warning.code];
+          await raiseUsageAlert(tx, this.events, {
+            clinicId,
+            itemId: item.id,
+            kind: meta.kind,
+            eventKind: meta.event,
+            title: `${meta.title}: ${item.name}`,
+            body: warning.message,
+            details: { ...warning.details, movementIds: created.map((m) => m.id), userId },
+          });
+        }
+
         const userName = (await tx.userCache.findUnique({ where: { id: userId }, select: { name: true } }))?.name ?? null;
         return {
           item: { id: item.id, code: item.code, name: item.name, unit: item.unit },
@@ -120,7 +154,7 @@ export class WithdrawalsService {
           quantity: toQuantityString(plan.allocations.reduce((sum, a) => sum.plus(a.quantity), dec(0))),
           movements: created.map((m) => toMovementDto(m, userName)),
           usableBalance: toQuantityString(usableBalanceAfter(lots, plan.allocations, today)),
-          warnings: [],
+          warnings,
         };
       });
     } catch (error) {

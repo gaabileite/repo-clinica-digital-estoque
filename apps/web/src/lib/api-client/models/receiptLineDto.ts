@@ -8,7 +8,13 @@
 
 export interface ReceiptLineDto {
   code: string;
+  /** Decimal positivo em string, até 3 casas. */
   receivedQuantity: string;
+  /**
+     * Obrigatório para insumo com controle de lote. Sem controle, o saldo vai para o lote único "-".
+     * @maxLength 60
+     */
   lotCode?: string;
+  /** Data civil (AAAA-MM-DD). Obrigatória para insumo com controle de lote. */
   expiresOn?: string;
 }
