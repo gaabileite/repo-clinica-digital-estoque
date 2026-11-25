@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { notImplemented } from '../common/not-implemented';
+import { netConsumption, numberSetting } from './consumption-query';
 import { computeAvailability } from './availability';
 import { computeConsumptionProfile, DEFAULT_CONSUMPTION_DROP_PERCENT, LEARNED_WINDOW, RECENT_DAYS } from './consumption-profile';
-import { dec, toQuantityString, type LeadTimeSample } from '../domain';
+import { averageDailyConsumption, DEFAULT_HIGH_WITHDRAWAL_MULTIPLIER, dec, toQuantityString, type LeadTimeSample } from '../domain';
+import { buildWithdrawalWarnings } from '../withdrawals/withdrawal-warnings';
 import { applyBalanceQuery } from './balance-list';
 import { civilToday, civilToIso, dateColumnToCivil } from './civil-date';
 import type { ListBalancesQueryDto } from './dto/list-balances-query.dto';
@@ -116,43 +118,54 @@ export class StockService {
     );
   }
 
-  /** E-14: availability for consumption (no expired lots, RN-05) and the FEFO suggested lot (RN-04). */
-  async availability(clinicId: string, itemId: string, quantity: string): Promise<AvailabilityDto> {
+  /**
+   * E-14: availability for consumption (no expired lots, RN-05) and the FEFO suggested lot (RN-04).
+   * With `lotId` it previews the chosen lot; `warnings` are the ones the withdrawal would raise (RN-09, RN-10),
+   * so the screen can show them before the user confirms.
+   */
+  async availability(clinicId: string, itemId: string, quantity: string, lotId?: string): Promise<AvailabilityDto> {
     const item = await this.findItem(clinicId, itemId, true);
     const today = civilToday();
-    return computeAvailability(
-      (item.lots ?? []).map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) })),
+    const lots = (item.lots ?? []).map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) }));
+    if (lotId) {
+      const chosen = lots.find((l) => l.id === lotId);
+      if (!chosen) throw new NotFoundException({ code: 'NOT_FOUND', detail: 'Lote não encontrado neste insumo, ou sem saldo.' });
+      if (chosen.expiresOn !== null && chosen.expiresOn < civilToIso(today)) {
+        throw new UnprocessableEntityException({ code: 'STOCK_LOT_EXPIRED', detail: `O lote ${chosen.lotCode} está vencido. Registre como perda por validade.` });
+      }
+    }
+    const result = computeAvailability(lots, quantity, item.expiryAlertLeadDays, today, civilToIso(today), lotId);
+
+    const now = new Date();
+    const net30 = await netConsumption(this.prisma, clinicId, itemId, new Date(now.getTime() - 30 * DAY_MS), now);
+    const warnings = buildWithdrawalWarnings({
       quantity,
-      item.expiryAlertLeadDays,
-      today,
-      civilToIso(today),
-    );
+      unit: item.unit,
+      notNearest: result.notNearest,
+      chosenLot: lots.find((l) => l.id === lotId) ?? null,
+      suggestedLot: lots.find((l) => l.id === result.suggestedLot?.id) ?? null,
+      avgDailyConsumption: averageDailyConsumption(net30),
+      highWithdrawalMultiplier: await numberSetting(this.prisma, 'highWithdrawalMultiplier', DEFAULT_HIGH_WITHDRAWAL_MULTIPLIER),
+    });
+    return { ...result, warnings };
   }
 
   /** E-15: 30-day average, learned average (days 15 to 90) and last-14-day average with the drop indicator (RN-11). */
   async consumptionProfile(clinicId: string, itemId: string, now: Date = new Date()): Promise<ConsumptionProfileDto> {
     await this.findItem(clinicId, itemId);
     const ago = (days: number) => new Date(now.getTime() - days * DAY_MS);
-    // Net consumption = consumption minus returns; reversed consumption does not count (RN-02, RN-07).
-    // The ledger stores consumption as negative and returns as positive, so net consumption is minus the sum.
-    const net = async (from: Date, to: Date) => {
-      const sum = await this.prisma.movement.aggregate({
-        where: { clinicId, itemId, kind: { in: ['CONSUMPTION', 'RETURN'] }, occurredAt: { gte: from, lt: to }, reversal: { is: null } },
-        _sum: { quantity: true },
-      });
-      return dec(sum._sum.quantity ?? 0).negated();
-    };
-    const [last30, learned, last14, drop] = await Promise.all([
+    const net = (from: Date, to: Date) => netConsumption(this.prisma, clinicId, itemId, from, to);
+    const [last30, learned, last14, dropThreshold] = await Promise.all([
       net(ago(30), now),
       net(ago(LEARNED_WINDOW.fromDaysAgo), ago(LEARNED_WINDOW.toDaysAgo)),
       net(ago(RECENT_DAYS), now),
-      this.prisma.setting.findUnique({ where: { key: 'consumptionDropPercent' } }),
+      numberSetting(this.prisma, 'consumptionDropPercent', DEFAULT_CONSUMPTION_DROP_PERCENT),
     ]);
     return computeConsumptionProfile({
       netLast30Days: last30,
       netLearnedWindow: learned,
       netLast14Days: last14,
-      dropThresholdPercent: typeof drop?.value === 'number' ? drop.value : DEFAULT_CONSUMPTION_DROP_PERCENT,
+      dropThresholdPercent: dropThreshold,
     });
   }
 
