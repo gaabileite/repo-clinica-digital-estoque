@@ -6,10 +6,14 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AdjustmentDto,
+  AvailabilityDto,
   BalancePageDto,
   CatalogItemDto,
   CatalogItemPageDto,
   CategoryDto,
+  ConsumptionProfileDto,
+  CreateAdjustmentDto,
   CreateCategoryDto,
   CreateItemDto,
   CreateReceiptDto,
@@ -19,6 +23,7 @@ import type {
   LotListDto,
   MyPermissionsDto,
   ProblemDetailsDto,
+  StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
   UpdateItemDto
@@ -750,7 +755,7 @@ export const stockControllerLots = async (clinicId: string,
 
 
 export type stockControllerAvailabilityResponse200 = {
-  data: void
+  data: AvailabilityDto
   status: 200
 }
 
@@ -762,21 +767,30 @@ export type stockControllerAvailabilityResponseSuccess = (stockControllerAvailab
 export type stockControllerAvailabilityResponse = (stockControllerAvailabilityResponseSuccess)
 
 export const getStockControllerAvailabilityUrl = (clinicId: string,
-    itemId: string,) => {
+    itemId: string,
+    params: StockControllerAvailabilityParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/items/${itemId}/availability`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/items/${itemId}/availability?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/items/${itemId}/availability`
 }
 
 /**
  * @summary Disponibilidade para consumo e lote sugerido (E-14)
  */
 export const stockControllerAvailability = async (clinicId: string,
-    itemId: string, options?: Parameters<typeof customFetch>[1]): Promise<stockControllerAvailabilityResponse> => {
+    itemId: string,
+    params: StockControllerAvailabilityParams, options?: Parameters<typeof customFetch>[1]): Promise<stockControllerAvailabilityResponse> => {
 
-  return customFetch<stockControllerAvailabilityResponse>(getStockControllerAvailabilityUrl(clinicId,itemId),
+  return customFetch<stockControllerAvailabilityResponse>(getStockControllerAvailabilityUrl(clinicId,itemId,params),
   {
     ...options,
     method: 'GET'
@@ -788,7 +802,7 @@ export const stockControllerAvailability = async (clinicId: string,
 
 
 export type stockControllerConsumptionProfileResponse200 = {
-  data: void
+  data: ConsumptionProfileDto
   status: 200
 }
 
@@ -1260,7 +1274,7 @@ export const movementsControllerReverse = async (clinicId: string,
 
 
 export type inventoryAdjustmentsControllerCreateResponse201 = {
-  data: void
+  data: AdjustmentDto
   status: 201
 }
 
@@ -1284,14 +1298,29 @@ export const getInventoryAdjustmentsControllerCreateUrl = (clinicId: string,
  * @summary Ajuste de inventário de um lote, com justificativa (E-26)
  */
 export const inventoryAdjustmentsControllerCreate = async (clinicId: string,
-    lotId: string, options?: Parameters<typeof customFetch>[1]): Promise<inventoryAdjustmentsControllerCreateResponse> => {
+    lotId: string,
+    createAdjustmentDto: CreateAdjustmentDto, options?: Parameters<typeof customFetch>[1]): Promise<inventoryAdjustmentsControllerCreateResponse> => {
 
-  return customFetch<inventoryAdjustmentsControllerCreateResponse>(getInventoryAdjustmentsControllerCreateUrl(clinicId,lotId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<inventoryAdjustmentsControllerCreateResponse>(getInventoryAdjustmentsControllerCreateUrl(clinicId,lotId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAdjustmentDto)
   }
 );}
 

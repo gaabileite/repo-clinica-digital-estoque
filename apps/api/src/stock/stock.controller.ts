@@ -2,7 +2,8 @@ import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../access/access.decorators';
 import { ListBalancesQueryDto } from './dto/list-balances-query.dto';
-import { BalancePageDto, LotListDto } from './dto/stock-responses.dto';
+import { AvailabilityQueryDto } from './dto/availability-query.dto';
+import { AvailabilityDto, BalancePageDto, ConsumptionProfileDto, LotListDto } from './dto/stock-responses.dto';
 import { StockService } from './stock.service';
 
 @ApiTags('stock')
@@ -29,14 +30,20 @@ export class StockController {
   @Get('clinics/:clinicId/items/:itemId/availability')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Disponibilidade para consumo e lote sugerido (E-14)' })
-  availability(@Param('clinicId') clinicId: string, @Param('itemId') itemId: string, @Query() query: Record<string, string>) {
-    return this.service.availability(clinicId, itemId, query);
+  @ApiOkResponse({ type: AvailabilityDto })
+  availability(
+    @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
+    @Param('itemId', new ParseUUIDPipe()) itemId: string,
+    @Query() query: AvailabilityQueryDto,
+  ) {
+    return this.service.availability(clinicId, itemId, query.quantity);
   }
 
   @Get('clinics/:clinicId/items/:itemId/consumption-profile')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Consumo médio de 30 dias e média aprendida (E-15)' })
-  consumptionProfile(@Param('clinicId') clinicId: string, @Param('itemId') itemId: string) {
+  @ApiOkResponse({ type: ConsumptionProfileDto })
+  consumptionProfile(@Param('clinicId', new ParseUUIDPipe()) clinicId: string, @Param('itemId', new ParseUUIDPipe()) itemId: string) {
     return this.service.consumptionProfile(clinicId, itemId);
   }
 

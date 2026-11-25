@@ -6,11 +6,15 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './adjustmentDto';
+export * from './availabilityDto';
 export * from './balancePageDto';
 export * from './balancePageMetaDto';
 export * from './catalogItemDto';
 export * from './catalogItemPageDto';
 export * from './categoryDto';
+export * from './consumptionProfileDto';
+export * from './createAdjustmentDto';
 export * from './createCategoryDto';
 export * from './createItemDto';
 export * from './createReceiptDto';
@@ -25,6 +29,7 @@ export * from './itemPageMetaDto';
 export * from './itemsControllerListActive';
 export * from './itemsControllerListParams';
 export * from './itemsControllerListStatus';
+export * from './lotAllocationDto';
 export * from './lotDto';
 export * from './lotDtoStatus';
 export * from './lotItemDto';
@@ -37,6 +42,7 @@ export * from './nearestExpiryDtoStatus';
 export * from './problemDetailsDto';
 export * from './problemDetailsDtoErrors';
 export * from './receiptLineDto';
+export * from './stockControllerAvailabilityParams';
 export * from './stockControllerBalancesActive';
 export * from './stockControllerBalancesExpiry';
 export * from './stockControllerBalancesLotControl';
@@ -44,5 +50,6 @@ export * from './stockControllerBalancesParams';
 export * from './stockControllerBalancesSituation';
 export * from './stockControllerBalancesSort';
 export * from './stockControllerBalancesTemperature';
+export * from './suggestedLotDto';
 export * from './updateCategoryDto';
 export * from './updateItemDto';
