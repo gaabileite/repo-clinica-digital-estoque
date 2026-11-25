@@ -21,12 +21,20 @@ import type {
   CreateWithdrawalDto,
   ItemsControllerListParams,
   LotListDto,
+  MovementDto,
+  MovementPageDto,
+  MovementsControllerListParams,
   MyPermissionsDto,
   ProblemDetailsDto,
+  ReceiptDto,
+  ReplaceRolePermissionsDto,
+  ReverseMovementDto,
+  RolePermissionsDto,
   StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
-  UpdateItemDto
+  UpdateItemDto,
+  WithdrawalDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -878,7 +886,7 @@ export const stockControllerLeadTime = async (clinicId: string,
 
 
 export type withdrawalsControllerCreateResponse201 = {
-  data: void
+  data: WithdrawalDto
   status: 201
 }
 
@@ -1200,7 +1208,7 @@ return customFetch<returnsControllerCreateResponse>(getReturnsControllerCreateUr
 
 
 export type movementsControllerListResponse200 = {
-  data: void
+  data: MovementPageDto
   status: 200
 }
 
@@ -1211,20 +1219,29 @@ export type movementsControllerListResponseSuccess = (movementsControllerListRes
 
 export type movementsControllerListResponse = (movementsControllerListResponseSuccess)
 
-export const getMovementsControllerListUrl = (clinicId: string,) => {
+export const getMovementsControllerListUrl = (clinicId: string,
+    params?: MovementsControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/movements`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/movements?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/movements`
 }
 
 /**
  * @summary Livro de movimentações (cursor, filtros) (E-39)
  */
-export const movementsControllerList = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<movementsControllerListResponse> => {
+export const movementsControllerList = async (clinicId: string,
+    params?: MovementsControllerListParams, options?: Parameters<typeof customFetch>[1]): Promise<movementsControllerListResponse> => {
 
-  return customFetch<movementsControllerListResponse>(getMovementsControllerListUrl(clinicId),
+  return customFetch<movementsControllerListResponse>(getMovementsControllerListUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
@@ -1236,7 +1253,7 @@ export const movementsControllerList = async (clinicId: string, options?: Parame
 
 
 export type movementsControllerReverseResponse201 = {
-  data: void
+  data: MovementDto
   status: 201
 }
 
@@ -1260,14 +1277,29 @@ export const getMovementsControllerReverseUrl = (clinicId: string,
  * @summary Estorna uma saída; o original permanece (E-25)
  */
 export const movementsControllerReverse = async (clinicId: string,
-    movementId: string, options?: Parameters<typeof customFetch>[1]): Promise<movementsControllerReverseResponse> => {
+    movementId: string,
+    reverseMovementDto: ReverseMovementDto, options?: Parameters<typeof customFetch>[1]): Promise<movementsControllerReverseResponse> => {
 
-  return customFetch<movementsControllerReverseResponse>(getMovementsControllerReverseUrl(clinicId,movementId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<movementsControllerReverseResponse>(getMovementsControllerReverseUrl(clinicId,movementId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reverseMovementDto)
   }
 );}
 
@@ -1327,7 +1359,7 @@ return customFetch<inventoryAdjustmentsControllerCreateResponse>(getInventoryAdj
 
 
 export type receiptsControllerCreateResponse201 = {
-  data: void
+  data: ReceiptDto
   status: 201
 }
 
@@ -2257,7 +2289,7 @@ export const permissionsControllerMine = async ( options?: Parameters<typeof cus
 
 
 export type permissionsControllerRolesResponse200 = {
-  data: void
+  data: RolePermissionsDto[]
   status: 200
 }
 
@@ -2293,7 +2325,7 @@ export const permissionsControllerRoles = async ( options?: Parameters<typeof cu
 
 
 export type permissionsControllerReplaceResponse200 = {
-  data: void
+  data: RolePermissionsDto
   status: 200
 }
 
@@ -2313,16 +2345,32 @@ export const getPermissionsControllerReplaceUrl = (role: string,) => {
 }
 
 /**
+ * Vale a partir da requisição seguinte. O superuser não pode perder stock:admin e nenhum perfil recebe stock:service.
  * @summary Substitui as permissões de um perfil (RF-03) (E-52)
  */
-export const permissionsControllerReplace = async (role: string, options?: Parameters<typeof customFetch>[1]): Promise<permissionsControllerReplaceResponse> => {
+export const permissionsControllerReplace = async (role: string,
+    replaceRolePermissionsDto: ReplaceRolePermissionsDto, options?: Parameters<typeof customFetch>[1]): Promise<permissionsControllerReplaceResponse> => {
 
-  return customFetch<permissionsControllerReplaceResponse>(getPermissionsControllerReplaceUrl(role),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<permissionsControllerReplaceResponse>(getPermissionsControllerReplaceUrl(role),
   {
     ...options,
-    method: 'PUT'
-
-
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(replaceRolePermissionsDto)
   }
 );}
 

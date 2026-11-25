@@ -8,7 +8,7 @@ describe('health (e2e)', () => {
   it('GET /health/live responde sem autenticação', async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
-      .useValue({})
+      .useValue({ rolePermission: { findMany: async () => [] } })
       .compile();
     const app = moduleRef.createNestApplication();
     await app.init();
@@ -19,7 +19,7 @@ describe('health (e2e)', () => {
   it('rota de negócio sem autenticação devolve 401', async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
-      .useValue({})
+      .useValue({ rolePermission: { findMany: async () => [] } })
       .compile();
     const app = moduleRef.createNestApplication();
     await app.init();

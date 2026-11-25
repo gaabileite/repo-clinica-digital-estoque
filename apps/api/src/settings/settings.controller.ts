@@ -1,6 +1,7 @@
+import type { AuthContext } from '../access/auth-context';
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermissions } from '../access/access.decorators';
+import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
 import { SettingsService } from './settings.service';
 
 @ApiTags('settings')
@@ -9,7 +10,7 @@ export class SettingsController {
   constructor(private readonly service: SettingsService) {}
 
   @Get('settings')
-  @RequirePermissions('stock:read')
+  @RequirePermissions('stock:admin')
   @ApiOperation({ summary: 'Parâmetros de cálculo e de alerta (RF-04) (E-53)' })
   get() {
     return this.service.get();
@@ -18,7 +19,7 @@ export class SettingsController {
   @Put('settings')
   @RequirePermissions('stock:admin')
   @ApiOperation({ summary: 'Altera os parâmetros do módulo (E-54)' })
-  update(@Body() body: Record<string, unknown>) {
-    return this.service.update(body);
+  update(@Body() body: unknown, @CurrentAuth() auth: AuthContext) {
+    return this.service.update(body, auth.userId);
   }
 }

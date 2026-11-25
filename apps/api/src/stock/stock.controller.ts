@@ -36,7 +36,7 @@ export class StockController {
     @Param('itemId', new ParseUUIDPipe()) itemId: string,
     @Query() query: AvailabilityQueryDto,
   ) {
-    return this.service.availability(clinicId, itemId, query.quantity);
+    return this.service.availability(clinicId, itemId, query.quantity, query.lotId);
   }
 
   @Get('clinics/:clinicId/items/:itemId/consumption-profile')

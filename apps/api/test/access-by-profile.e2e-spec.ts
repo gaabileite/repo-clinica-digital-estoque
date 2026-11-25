@@ -47,7 +47,7 @@ describe('access by profile and clinic (e2e)', () => {
       .overrideProvider(CategoriesService)
       .useValue({ list: async () => [], create: async () => ({ id: 'category-test', name: 'EPI', active: true }) })
       .overrideProvider(PrismaService)
-      .useValue({})
+      .useValue({ rolePermission: { findMany: async () => [] } })
       .overrideProvider(TokenVerifier)
       .useValue(fakeVerifier)
       .compile();

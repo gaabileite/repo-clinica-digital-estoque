@@ -16,6 +16,7 @@ export interface CreateReceiptDto {
   description?: string;
   /** Obrigatório quando origin = external-donation. */
   donorLetterFileId?: string;
+  /** Comprovante, opcional em qualquer origem. */
   proofFileId?: string;
   /** Data do pedido (não se aplica a doação). */
   orderedOn?: string;

@@ -9,4 +9,6 @@
 export type StockControllerAvailabilityParams = {
   /** Quantidade pedida: string decimal positiva, até 3 casas. */
   quantity: string;
+  /** Lote que o usuário pretende usar em vez do sugerido (RN-09): a resposta avisa se não for o de validade mais próxima. */
+  lotId?: string;
 };

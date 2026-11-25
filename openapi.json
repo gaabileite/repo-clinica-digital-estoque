@@ -876,6 +876,15 @@
               "example": "2.500",
               "type": "string"
             }
+          },
+          {
+            "name": "lotId",
+            "required": false,
+            "in": "query",
+            "description": "Lote que o usuário pretende usar em vez do sugerido (RN-09): a resposta avisa se não for o de validade mais próxima.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -978,6 +987,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Chave de idempotência: reenviar com o mesmo corpo devolve a resposta original.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -992,7 +1018,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalDto"
+                }
+              }
+            }
           }
         },
         "summary": "Retirada pelo código do insumo, com lote sugerido pelo FEFO (E-18)",
@@ -1206,11 +1239,117 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "itemId",
+            "required": false,
+            "in": "query",
+            "description": "Insumo (id).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Código do insumo, ex.: INS-0001.",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Categoria da movimentação.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "consumption",
+                "expiry-loss",
+                "damage-discard",
+                "loan",
+                "donation",
+                "entry",
+                "reversal",
+                "inventory-adjustment",
+                "return"
+              ]
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "Usuário que fez a movimentação (id).",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "name": "lot",
+            "required": false,
+            "in": "query",
+            "description": "Código do lote (contém, sem diferenciar maiúsculas).",
+            "schema": {
+              "maxLength": 60,
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Início do período: data civil (começa à 00:00 de America/Recife) ou instante ISO 8601 com fuso.",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Fim do período: data civil (vale o dia inteiro, até 23:59 de America/Recife) ou instante ISO 8601 com fuso.",
+            "schema": {
+              "example": "2026-11-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor da página seguinte (`page.nextCursor`).",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementPageDto"
+                }
+              }
+            }
           }
         },
         "summary": "Livro de movimentações (cursor, filtros) (E-39)",
@@ -1238,11 +1377,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Reenviar com o mesmo corpo devolve a resposta original.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReverseMovementDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "O lançamento de estorno.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementDto"
+                }
+              }
+            }
           }
         },
         "summary": "Estorna uma saída; o original permanece (E-25)",
@@ -1320,6 +1493,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Reenviar com o mesmo corpo devolve a resposta original.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1334,7 +1524,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDto"
+                }
+              }
+            }
           }
         },
         "summary": "Registra a entrada e emite a nota de recebimento (E-27)",
@@ -1949,7 +2146,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RolePermissionsDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Perfis do módulo e suas permissões (E-51)",
@@ -1960,6 +2167,7 @@
     },
     "/api/v1/roles/{role}/permissions": {
       "put": {
+        "description": "Vale a partir da requisição seguinte. O superuser não pode perder stock:admin e nenhum perfil recebe stock:service.",
         "operationId": "PermissionsController_replace",
         "parameters": [
           {
@@ -1971,9 +2179,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceRolePermissionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolePermissionsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Substitui as permissões de um perfil (RF-03) (E-52)",
@@ -2828,6 +3053,35 @@
           "quantity"
         ]
       },
+      "WithdrawalWarningDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "LOT_NOT_NEAREST_EXPIRY",
+              "QUANTITY_ABOVE_DAILY_AVERAGE"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "Texto pronto para mostrar ao usuário."
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true
+            },
+            "description": "Lote escolhido e sugerido (RN-09) ou quantidade, média e limite (RN-10)."
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details"
+        ]
+      },
       "AvailabilityDto": {
         "type": "object",
         "properties": {
@@ -2864,11 +3118,22 @@
               }
             ]
           },
+          "notNearest": {
+            "type": "boolean",
+            "description": "RN-09: o lote escolhido (`lotId`) não é o de validade mais próxima."
+          },
           "allocations": {
             "description": "Como a retirada sairia dos lotes; vazio sem saldo suficiente.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LotAllocationDto"
+            }
+          },
+          "warnings": {
+            "description": "Avisos que a retirada geraria (RN-09 e RN-10), para a tela mostrar antes de confirmar.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WithdrawalWarningDto"
             }
           }
         },
@@ -2879,7 +3144,9 @@
           "available",
           "shortfall",
           "suggestedLot",
-          "allocations"
+          "notNearest",
+          "allocations",
+          "warnings"
         ]
       },
       "ConsumptionProfileDto": {
@@ -2936,7 +3203,7 @@
           "quantity": {
             "type": "string",
             "example": "2.000",
-            "description": "Decimal em string, sem float."
+            "description": "Decimal positivo em string, até 3 casas."
           },
           "kind": {
             "type": "string",
@@ -2950,21 +3217,249 @@
           },
           "lotId": {
             "type": "string",
-            "description": "Escolhe outro lote que não o sugerido (gera aviso, RN-09)."
+            "description": "Escolhe outro lote que não o sugerido (RN-09). Obrigatório na perda por validade."
           },
           "recipient": {
             "type": "string",
-            "description": "Obrigatório em empréstimo e doação."
+            "description": "Obrigatório em empréstimo e doação.",
+            "maxLength": 200
           },
           "reason": {
             "type": "string",
-            "description": "Obrigatório em descarte por avaria e nos demais tipos que não são consumo."
+            "description": "Obrigatório em descarte por avaria e perda por validade.",
+            "maxLength": 500
           }
         },
         "required": [
           "code",
           "quantity",
           "kind"
+        ]
+      },
+      "WithdrawalItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "MovementItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "Categoria do insumo."
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit",
+          "categoryName"
+        ]
+      },
+      "MovementLotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210",
+            "description": "Lote como estava na movimentação (RNF-14)."
+          },
+          "expiresOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2027-06-02",
+            "description": "Validade na movimentação, data civil."
+          }
+        },
+        "required": [
+          "id",
+          "lotCode",
+          "expiresOn"
+        ]
+      },
+      "MovementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Instante da movimentação, ISO 8601 UTC."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consumption",
+              "expiry-loss",
+              "damage-discard",
+              "loan",
+              "donation",
+              "entry",
+              "reversal",
+              "inventory-adjustment",
+              "return"
+            ],
+            "description": "Uma das nove categorias do livro (RF-14)."
+          },
+          "item": {
+            "$ref": "#/components/schemas/MovementItemDto"
+          },
+          "lot": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementLotDto"
+              }
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "example": "-2.000",
+            "description": "Positivo entra no estoque, negativo sai. Decimal em string."
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "recipient": {
+            "type": "string",
+            "nullable": true,
+            "description": "Destinatário de empréstimo ou doação."
+          },
+          "returnedBy": {
+            "type": "string",
+            "nullable": true,
+            "description": "Quem devolveu (devolução)."
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do usuário, do cache do IAM."
+          },
+          "origin": {
+            "type": "string",
+            "nullable": true,
+            "example": "manual"
+          },
+          "reversalOfId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Movimentação que este estorno desfaz."
+          },
+          "reversedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Estorno que desfez esta movimentação."
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "kind",
+          "item",
+          "lot",
+          "quantity",
+          "reason",
+          "recipient",
+          "returnedBy",
+          "userId",
+          "userName",
+          "origin",
+          "reversalOfId",
+          "reversedById"
+        ]
+      },
+      "WithdrawalDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/WithdrawalItemDto"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consumption",
+              "expiry-loss",
+              "damage-discard",
+              "loan",
+              "donation"
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "example": "4.000",
+            "description": "Quantidade total retirada, positiva."
+          },
+          "movements": {
+            "description": "Um lançamento por lote usado, na ordem de saída (FEFO).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementDto"
+            }
+          },
+          "usableBalance": {
+            "type": "string",
+            "example": "8.000",
+            "description": "Saldo utilizável do insumo depois da retirada (sem lotes vencidos)."
+          },
+          "warnings": {
+            "description": "Avisos da retirada (RN-09 e RN-10). Cada um gerou um alerta ao Administrador. A tela os mostra antes de confirmar pela E-14.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WithdrawalWarningDto"
+            }
+          }
+        },
+        "required": [
+          "item",
+          "kind",
+          "quantity",
+          "movements",
+          "usableBalance",
+          "warnings"
         ]
       },
       "CreateReturnDto": {
@@ -3001,6 +3496,55 @@
           "code",
           "quantity",
           "returnedBy"
+        ]
+      },
+      "MovementPageMetaDto": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "number",
+            "description": "Movimentações que atendem aos filtros."
+          }
+        },
+        "required": [
+          "nextCursor",
+          "total"
+        ]
+      },
+      "MovementPageDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementDto"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/MovementPageMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "page"
+        ]
+      },
+      "ReverseMovementDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Retirada lançada no insumo errado.",
+            "maxLength": 500,
+            "description": "Motivo do estorno. Obrigatório."
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "CreateAdjustmentDto": {
@@ -3070,14 +3614,18 @@
           },
           "receivedQuantity": {
             "type": "string",
-            "example": "10.000"
+            "example": "10.000",
+            "description": "Decimal positivo em string, até 3 casas."
           },
           "lotCode": {
-            "type": "string"
+            "type": "string",
+            "description": "Obrigatório para insumo com controle de lote. Sem controle, o saldo vai para o lote único \"-\".",
+            "maxLength": 60
           },
           "expiresOn": {
             "type": "string",
-            "example": "2027-03-01"
+            "example": "2027-03-01",
+            "description": "Data civil (AAAA-MM-DD). Obrigatória para insumo com controle de lote."
           }
         },
         "required": [
@@ -3110,7 +3658,8 @@
             "description": "Obrigatório quando origin = external-donation."
           },
           "proofFileId": {
-            "type": "string"
+            "type": "string",
+            "description": "Comprovante, opcional em qualquer origem."
           },
           "orderedOn": {
             "type": "string",
@@ -3135,6 +3684,158 @@
         },
         "required": [
           "origin",
+          "lines"
+        ]
+      },
+      "ReceiptItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "ReceiptLineResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "item": {
+            "$ref": "#/components/schemas/ReceiptItemDto"
+          },
+          "receivedQuantity": {
+            "type": "string",
+            "example": "10.000"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210"
+          },
+          "expiresOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2027-06-02"
+          },
+          "lotId": {
+            "type": "string",
+            "description": "Lote que recebeu a quantidade (criado ou já existente)."
+          },
+          "lotCreated": {
+            "type": "boolean",
+            "description": "Esta linha criou o lote."
+          },
+          "movementId": {
+            "type": "string",
+            "description": "Lançamento de entrada desta linha no livro de movimentações."
+          },
+          "balance": {
+            "type": "string",
+            "example": "25.000",
+            "description": "Saldo total do insumo depois da entrada, com todos os lotes."
+          }
+        },
+        "required": [
+          "id",
+          "item",
+          "receivedQuantity",
+          "lotCode",
+          "expiresOn",
+          "lotId",
+          "lotCreated",
+          "movementId",
+          "balance"
+        ]
+      },
+      "ReceiptDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string",
+            "example": "NR-0001",
+            "description": "Número da nota de recebimento, sequencial por clínica."
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "central-warehouse",
+              "other-clinic",
+              "external-donation",
+              "other"
+            ]
+          },
+          "originClinicId": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "donorLetterFileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "proofFileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderedOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-11-10",
+            "description": "Data do pedido, usada no tempo de reposição (RN-03)."
+          },
+          "receivedOn": {
+            "type": "string",
+            "example": "2026-11-25"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Instante da emissão, ISO 8601 UTC."
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptLineResultDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "origin",
+          "originClinicId",
+          "description",
+          "donorLetterFileId",
+          "proofFileId",
+          "orderedOn",
+          "receivedOn",
+          "userId",
+          "createdAt",
           "lines"
         ]
       },
@@ -3194,6 +3895,85 @@
           "profile",
           "permissions",
           "clinics"
+        ]
+      },
+      "RolePermissionsDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "superuser",
+              "admin",
+              "warehouse",
+              "budget-controller"
+            ],
+            "example": "warehouse"
+          },
+          "permissions": {
+            "type": "array",
+            "example": [
+              "stock:read",
+              "stock:withdraw"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "stock:read",
+                "stock:network:read",
+                "stock:withdraw",
+                "stock:receive",
+                "stock:adjust",
+                "stock:reverse",
+                "stock:catalog:write",
+                "stock:reports",
+                "stock:audit",
+                "stock:admin",
+                "stock:service",
+                "stock:budget:read",
+                "stock:budget:cost:write",
+                "stock:budget:switch"
+              ]
+            }
+          }
+        },
+        "required": [
+          "role",
+          "permissions"
+        ]
+      },
+      "ReplaceRolePermissionsDto": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "example": [
+              "stock:read",
+              "stock:withdraw"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "stock:read",
+                "stock:network:read",
+                "stock:withdraw",
+                "stock:receive",
+                "stock:adjust",
+                "stock:reverse",
+                "stock:catalog:write",
+                "stock:reports",
+                "stock:audit",
+                "stock:admin",
+                "stock:service",
+                "stock:budget:read",
+                "stock:budget:cost:write",
+                "stock:budget:switch"
+              ]
+            }
+          }
+        },
+        "required": [
+          "permissions"
         ]
       }
     }

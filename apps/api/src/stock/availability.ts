@@ -13,6 +13,8 @@ export interface AvailabilityResult {
   shortfall: string;
   /** Primeiro lote utilizável na ordem FEFO (RN-04); nulo sem saldo utilizável. */
   suggestedLot: SuggestedLot | null;
+  /** RN-09: o lote escolhido (`lotId`) não é o de validade mais próxima. */
+  notNearest: boolean;
   /** Como a retirada sairia dos lotes (FEFO); vazio quando não há saldo suficiente. */
   allocations: { lotId: string; lotCode: string; quantity: string }[];
 }
@@ -35,6 +37,7 @@ export function computeAvailability(
   alertLeadDays: number,
   today: Date,
   todayCivil: string,
+  preferredLotId?: string,
 ): AvailabilityResult {
   const classified = classifyLots(lots, alertLeadDays, today);
   const usable = classified.filter((l) => l.usable);
@@ -43,7 +46,7 @@ export function computeAvailability(
   const want = dec(requested);
 
   const suggested = classified.find((l) => l.suggested) ?? null;
-  const fefo = allocateFefo(lots, want, todayCivil);
+  const fefo = allocateFefo(lots, want, todayCivil, preferredLotId);
   const byId = new Map(classified.map((l) => [l.id, l]));
 
   return {
@@ -61,6 +64,7 @@ export function computeAvailability(
           daysToExpiry: suggested.daysToExpiry,
         }
       : null,
+    notNearest: fefo.ok ? fefo.notNearest : false,
     allocations: fefo.ok
       ? fefo.allocations.map((a) => ({ lotId: a.lotId, lotCode: byId.get(a.lotId)?.lotCode ?? '', quantity: toQuantityString(a.quantity) }))
       : [],
