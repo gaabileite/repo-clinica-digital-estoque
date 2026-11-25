@@ -1,8 +1,11 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermissions } from '../access/access.decorators';
+import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { ApiCreatedResponse, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
+import type { AuthContext } from '../access/auth-context';
+import { requireAuth } from '../access/require-auth';
 import { Idempotent } from '../common/idempotency/idempotency';
 import { CreateReceiptDto } from './dto/create-receipt.dto';
+import { ReceiptDto } from './dto/receipt-response.dto';
 import { ReceiptsService } from './receipts.service';
 
 @ApiTags('receipts')
@@ -14,8 +17,15 @@ export class ReceiptsController {
   @RequirePermissions('stock:receive')
   @Idempotent()
   @ApiOperation({ summary: 'Registra a entrada e emite a nota de recebimento (E-27)' })
-  create(@Param('clinicId') clinicId: string, @Body() body: CreateReceiptDto) {
-    return this.service.create(clinicId, body);
+  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'Reenviar com o mesmo corpo devolve a resposta original.' })
+  @ApiCreatedResponse({ type: ReceiptDto })
+  create(
+    @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
+    @CurrentAuth() auth: AuthContext | undefined,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @Body() body: CreateReceiptDto,
+  ) {
+    return this.service.create(clinicId, requireAuth(auth), idempotencyKey.trim(), body);
   }
 
   @Get('clinics/:clinicId/receipts')
