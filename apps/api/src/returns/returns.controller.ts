@@ -1,6 +1,7 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import type { AuthContext } from '../access/auth-context';
+import { Body, Controller, Headers, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermissions } from '../access/access.decorators';
+import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
 import { Idempotent } from '../common/idempotency/idempotency';
 import { CreateReturnDto } from './dto/create-return.dto';
 import { ReturnsService } from './returns.service';
@@ -14,7 +15,12 @@ export class ReturnsController {
   @RequirePermissions('stock:withdraw')
   @Idempotent()
   @ApiOperation({ summary: 'Devolução de item retirado e não utilizado (E-24)' })
-  create(@Param('clinicId') clinicId: string, @Body() body: CreateReturnDto) {
-    return this.service.create(clinicId, body);
+  create(
+    @Param('clinicId', ParseUUIDPipe) clinicId: string,
+    @Body() body: CreateReturnDto,
+    @CurrentAuth() auth: AuthContext,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.service.create(clinicId, body, auth.userId, key);
   }
 }
