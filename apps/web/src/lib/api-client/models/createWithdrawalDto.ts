@@ -10,13 +10,19 @@ import type { CreateWithdrawalDtoKind } from './createWithdrawalDtoKind';
 export interface CreateWithdrawalDto {
   /** Código do insumo (chave de negócio). */
   code: string;
-  /** Decimal em string, sem float. */
+  /** Decimal positivo em string, até 3 casas. */
   quantity: string;
   kind: CreateWithdrawalDtoKind;
-  /** Escolhe outro lote que não o sugerido (gera aviso, RN-09). */
+  /** Escolhe outro lote que não o sugerido (RN-09). Obrigatório na perda por validade. */
   lotId?: string;
-  /** Obrigatório em empréstimo e doação. */
+  /**
+     * Obrigatório em empréstimo e doação.
+     * @maxLength 200
+     */
   recipient?: string;
-  /** Obrigatório em descarte por avaria e nos demais tipos que não são consumo. */
+  /**
+     * Obrigatório em descarte por avaria e perda por validade.
+     * @maxLength 500
+     */
   reason?: string;
 }

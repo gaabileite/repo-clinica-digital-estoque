@@ -119,7 +119,7 @@ Perfis: **S** superuser, **A** administrador, **AL** almoxarife, **C** controlad
 - E-17 `GET {c}/dashboard/weekly-consumption?itemCode=&weeks=8`: consumo semanal em quantidade. S A
 
 ### Saídas
-- E-18 `POST {c}/withdrawals`: retirada pelo código. `kind`: `consumption`, `expiry-loss`, `damage-discard`, `loan`, `donation`. Sugere o lote de validade mais próxima; `lotId` escolhe outro. `loan` e `donation` exigem `recipient`. A resposta traz `warnings[]` (`LOT_NOT_NEAREST_EXPIRY`, `QUANTITY_ABOVE_DAILY_AVERAGE`); cada aviso gera alerta ao administrador. A AL
+- E-18 `POST {c}/withdrawals`: retirada pelo código. `kind`: `consumption`, `expiry-loss`, `damage-discard`, `loan`, `donation`. Sugere o lote de validade mais próxima; `lotId` escolhe outro. `loan` e `donation` exigem `recipient`; `damage-discard` e `expiry-loss` exigem `reason`; `expiry-loss` só sai de lote vencido (`lotId`). A baixa pode passar por mais de um lote (um lançamento por lote) e trava os lotes do insumo. A resposta traz `movements[]`, `usableBalance` e `warnings[]` (`LOT_NOT_NEAREST_EXPIRY`, `QUANTITY_ABOVE_DAILY_AVERAGE`); cada aviso gera alerta ao administrador. A AL
 - E-19 `POST {c}/procedure-consumptions:preview`: dado pacote e nº de execuções, devolve insumos, quantidades padrão e disponibilidade, sem baixar. A AL +serviço
 - E-20 `POST {c}/procedure-consumptions`: confirma baixa de procedimento. Quantidade diferente do padrão exige `justification`. `executionId` opcional (idempotência por execução). A AL +serviço
 - E-21 `GET {c}/pending-consumptions`: baixas pendentes geradas por execuções. A AL
@@ -229,7 +229,8 @@ CloudEvents 1.0 com extensões `clinicid` e `correlationid`. Entrega pelo menos 
 |---|---|---|
 | `STOCK_INSUFFICIENT` | 422 | Saldo utilizável menor que o pedido (lotes vencidos não contam) |
 | `STOCK_LOT_EXPIRED` | 422 | Consumo de lote vencido (usar perda por validade) |
-| `STOCK_LOT_REQUIRED` | 422 | Insumo com controle de lote sem lote/validade |
+| `STOCK_LOT_REQUIRED` | 422 | Insumo com controle de lote sem lote/validade; perda por validade sem o lote vencido escolhido |
+| `STOCK_LOT_NOT_EXPIRED` | 422 | Perda por validade de lote que ainda não venceu |
 | `STOCK_CODE_NOT_FOUND` | 404 | Código inexistente na clínica |
 | `STOCK_RECIPIENT_REQUIRED` | 422 | Empréstimo ou doação sem destinatário |
 | `STOCK_DONOR_LETTER_REQUIRED` | 422 | Doação externa sem carta do doador |
@@ -242,6 +243,7 @@ CloudEvents 1.0 com extensões `clinicid` e `correlationid`. Entrega pelo menos 
 | `STOCK_CLINIC_FORBIDDEN` | 403 | Usuário sem vínculo com a clínica |
 | `STOCK_DEPENDENCY_UNAVAILABLE` | 503 | Módulo necessário fora do ar, sem alternativa |
 | `IDEMPOTENCY_CONFLICT` | 422 | Chave reutilizada com corpo diferente |
+| `IDEMPOTENCY_IN_PROGRESS` | 409 | Já existe lançamento com a chave: reenvio simultâneo ou chave reaproveitada depois das 72 h |
 | `PRECONDITION_FAILED` | 412 | If-Match desatualizado |
 
 ## 8. Requisitos não funcionais e resiliência

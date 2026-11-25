@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../access/access.decorators';
 import { Idempotent } from '../common/idempotency/idempotency';
+import { ListMovementsQueryDto } from './dto/list-movements-query.dto';
+import { MovementPageDto } from './dto/movement-response.dto';
 import { MovementsService } from './movements.service';
 
 @ApiTags('movements')
@@ -12,7 +14,8 @@ export class MovementsController {
   @Get('clinics/:clinicId/movements')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Livro de movimentações (cursor, filtros) (E-39)' })
-  list(@Param('clinicId') clinicId: string, @Query() query: Record<string, string>) {
+  @ApiOkResponse({ type: MovementPageDto })
+  list(@Param('clinicId', new ParseUUIDPipe()) clinicId: string, @Query() query: ListMovementsQueryDto) {
     return this.service.list(clinicId, query);
   }
 

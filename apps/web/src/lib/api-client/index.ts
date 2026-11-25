@@ -21,6 +21,8 @@ import type {
   CreateWithdrawalDto,
   ItemsControllerListParams,
   LotListDto,
+  MovementPageDto,
+  MovementsControllerListParams,
   MyPermissionsDto,
   ProblemDetailsDto,
   ReplaceRolePermissionsDto,
@@ -28,7 +30,8 @@ import type {
   StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
-  UpdateItemDto
+  UpdateItemDto,
+  WithdrawalDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -880,7 +883,7 @@ export const stockControllerLeadTime = async (clinicId: string,
 
 
 export type withdrawalsControllerCreateResponse201 = {
-  data: void
+  data: WithdrawalDto
   status: 201
 }
 
@@ -1202,7 +1205,7 @@ return customFetch<returnsControllerCreateResponse>(getReturnsControllerCreateUr
 
 
 export type movementsControllerListResponse200 = {
-  data: void
+  data: MovementPageDto
   status: 200
 }
 
@@ -1213,20 +1216,29 @@ export type movementsControllerListResponseSuccess = (movementsControllerListRes
 
 export type movementsControllerListResponse = (movementsControllerListResponseSuccess)
 
-export const getMovementsControllerListUrl = (clinicId: string,) => {
+export const getMovementsControllerListUrl = (clinicId: string,
+    params?: MovementsControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/movements`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/movements?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/movements`
 }
 
 /**
  * @summary Livro de movimentações (cursor, filtros) (E-39)
  */
-export const movementsControllerList = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<movementsControllerListResponse> => {
+export const movementsControllerList = async (clinicId: string,
+    params?: MovementsControllerListParams, options?: Parameters<typeof customFetch>[1]): Promise<movementsControllerListResponse> => {
 
-  return customFetch<movementsControllerListResponse>(getMovementsControllerListUrl(clinicId),
+  return customFetch<movementsControllerListResponse>(getMovementsControllerListUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
