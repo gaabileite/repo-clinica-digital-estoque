@@ -23,6 +23,8 @@ import type {
   LotListDto,
   MyPermissionsDto,
   ProblemDetailsDto,
+  ReplaceRolePermissionsDto,
+  RolePermissionsDto,
   StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
@@ -2257,7 +2259,7 @@ export const permissionsControllerMine = async ( options?: Parameters<typeof cus
 
 
 export type permissionsControllerRolesResponse200 = {
-  data: void
+  data: RolePermissionsDto[]
   status: 200
 }
 
@@ -2293,7 +2295,7 @@ export const permissionsControllerRoles = async ( options?: Parameters<typeof cu
 
 
 export type permissionsControllerReplaceResponse200 = {
-  data: void
+  data: RolePermissionsDto
   status: 200
 }
 
@@ -2313,16 +2315,32 @@ export const getPermissionsControllerReplaceUrl = (role: string,) => {
 }
 
 /**
+ * Vale a partir da requisição seguinte. O superuser não pode perder stock:admin e nenhum perfil recebe stock:service.
  * @summary Substitui as permissões de um perfil (RF-03) (E-52)
  */
-export const permissionsControllerReplace = async (role: string, options?: Parameters<typeof customFetch>[1]): Promise<permissionsControllerReplaceResponse> => {
+export const permissionsControllerReplace = async (role: string,
+    replaceRolePermissionsDto: ReplaceRolePermissionsDto, options?: Parameters<typeof customFetch>[1]): Promise<permissionsControllerReplaceResponse> => {
 
-  return customFetch<permissionsControllerReplaceResponse>(getPermissionsControllerReplaceUrl(role),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<permissionsControllerReplaceResponse>(getPermissionsControllerReplaceUrl(role),
   {
     ...options,
-    method: 'PUT'
-
-
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(replaceRolePermissionsDto)
   }
 );}
 
