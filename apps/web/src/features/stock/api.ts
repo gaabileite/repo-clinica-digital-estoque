@@ -131,3 +131,13 @@ export function useStockCategories(clinicId: string) {
     },
   });
 }
+
+/** Mantém a seleção inicial de clínica usada pelos Cadastros em desenvolvimento. */
+export function getDevClinicId(): string {
+  try {
+    const data = JSON.parse(localStorage.getItem('estoque-dev-session') ?? '{}') as { clinicIds?: string[] };
+    return data.clinicIds?.[0] ?? '';
+  } catch {
+    return '';
+  }
+}
