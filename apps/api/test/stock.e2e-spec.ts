@@ -1,10 +1,11 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { TokenVerifier } from '../src/access/token-verifier';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { civilToday } from '../src/stock/civil-date';
 
 /**
  * E3-H1 and E3-H2 against the real database (balances and lots).
@@ -16,7 +17,8 @@ const url = process.env.TEST_DATABASE_URL;
 const DAY = 864e5;
 const daysFromNow = (n: number) => new Date(Date.now() + n * DAY);
 const civil = (n: number) => {
-  const d = daysFromNow(n);
+  // As validades usam o dia da clínica, mesmo quando o runner já está no dia seguinte em UTC.
+  const d = civilToday(daysFromNow(n));
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 };
 
@@ -31,6 +33,9 @@ describe.skipIf(!url)('stock balances and lots (e2e, real database)', () => {
   const get = (path: string, token = 'admin') => request(app.getHttpServer()).get(path).set('Authorization', `Bearer ${token}`);
 
   beforeAll(async () => {
+    // Em UTC é dia 25; em Recife ainda é dia 24. Congelar apenas Date mantém os timers do banco reais.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-25T01:30:00.000Z'));
     process.env.DATABASE_URL = url;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(TokenVerifier)
@@ -108,8 +113,12 @@ describe.skipIf(!url)('stock balances and lots (e2e, real database)', () => {
   });
 
   afterAll(async () => {
-    await cleanup();
-    await app.close();
+    try {
+      await cleanup();
+      await app.close();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   async function cleanup() {
