@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { PermissionMatrixService } from '../access/permission-matrix.service';
 import { permissionsOf } from '../access/permissions';
 import { PROFILES } from '../access/profile';
+import type { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from './permissions.service';
 
 describe('PermissionsService.mine', () => {
-  const service = new PermissionsService();
+  // A matrix that was never loaded uses the defaults, so these tests need no database.
+  const service = new PermissionsService(new PermissionMatrixService({} as unknown as PrismaService));
 
   it('returns the profile, the matrix permissions and the clinics of the caller', () => {
     expect(service.mine({ userId: 'u1', profile: 'admin', clinicIds: ['clinic-1'] })).toEqual({
@@ -32,6 +35,6 @@ describe('PermissionsService.mine', () => {
   it('returns copies, so changing the answer cannot change the permission matrix', () => {
     const result = service.mine({ userId: 'u1', profile: 'warehouse', clinicIds: ['clinic-1'] });
     result.permissions.push('stock:admin');
-    expect(permissionsOf('warehouse')).not.toContain('stock:admin');
+    expect(service.mine({ userId: 'u1', profile: 'warehouse', clinicIds: [] }).permissions).not.toContain('stock:admin');
   });
 });
