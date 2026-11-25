@@ -9,17 +9,22 @@ import { ApiError } from './lib/api-client/custom-fetch';
 import { getMePermissions } from './lib/me-permissions';
 import { useShellPage } from './lib/use-shell-page';
 import { useEffect } from 'react';
+import { NotificationInboxContext, type NotificationInbox } from './features/notifications/api';
+import { NotificationBell } from './features/notifications/NotificationBell';
 
 interface AppProps {
   standalone?: boolean;
   permissions?: readonly Permission[];
+  notificationInbox?: NotificationInbox;
 }
 
 export function App(props: AppProps) {
   return (
     <ModuleProviders>
       <section aria-label="Estoque e insumos">
-        <ModuleContent {...props} />
+        <NotificationInboxContext.Provider value={props.notificationInbox}>
+          <ModuleContent {...props} />
+        </NotificationInboxContext.Provider>
       </section>
     </ModuleProviders>
   );
@@ -85,7 +90,12 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
       hasPermission(grantedPermissions, p.permission),
   );
 
-  const canAccess = hasPermission(grantedPermissions, current.permission);
+  const canShowNotifications =
+    !isBudgetController && current.id !== 'budget' &&
+    hasPermission(grantedPermissions, 'stock:read');
+  const canAccess = current.id === 'notifications'
+    ? canShowNotifications
+    : hasPermission(grantedPermissions, current.permission);
 
   return (
     <ModuleSessionContext.Provider value={{
@@ -93,7 +103,14 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
       permissions: [...grantedPermissions],
       clinics: query.data?.clinics ?? [],
     }}>
-      <ModuleNav pages={nav} current={current.id} onGo={go} />
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <ModuleNav pages={nav} current={current.id} onGo={go} />
+        </div>
+        {canShowNotifications && (
+          <NotificationBell current={current.id === 'notifications'} onOpen={() => go('notifications')} />
+        )}
+      </div>
 
       {canAccess ? (
         <Page />
