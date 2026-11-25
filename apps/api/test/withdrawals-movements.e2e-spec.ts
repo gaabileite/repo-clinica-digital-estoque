@@ -122,6 +122,26 @@ describe.skipIf(!url)('withdrawals and movements (e2e, real database)', () => {
     await app.close();
   });
 
+  it('reutiliza o lote na devolução e rejeita outra validade sem alterar o estoque', async () => {
+    const item = await newItem('Devolução');
+    const postReturn = (newLotExpiresOn: string, key = randomUUID()) =>
+      request(app.getHttpServer()).post(`/clinics/${clinicId}/returns`)
+        .set('Authorization', 'Bearer admin').set('Idempotency-Key', key)
+        .send({ code: item.code, returnedBy: 'Ana', quantity: '2', newLotCode: 'DEV-1', newLotExpiresOn });
+
+    const first = await postReturn('2030-03-01').expect(201);
+    const key = randomUUID();
+    const simultaneous = await Promise.all(Array.from({ length: 5 }, () => postReturn('2030-03-01', key).expect(201)));
+    expect(new Set(simultaneous.map((r) => r.body.id)).size).toBe(1);
+    expect(simultaneous[0].body.lotId).toBe(first.body.lotId);
+    await postReturn('2030-03-02', key).expect(422);
+    await postReturn('2030-03-02').expect(422);
+    const saved = await prisma.lot.findMany({ where: { clinicId, itemId: item.id } });
+    expect(saved).toHaveLength(1);
+    expect(saved[0].quantity.toString()).toBe('4');
+    expect(await prisma.movement.count({ where: { clinicId, itemId: item.id } })).toBe(2);
+  });
+
   describe('POST /clinics/:id/withdrawals (E-18, E4-H1)', () => {
     it('sai do lote de validade mais próxima, baixa o saldo e grava o lançamento no livro', async () => {
       const res = await withdraw({ code: code('Luva'), quantity: '2.000', kind: 'consumption' }).expect(201);

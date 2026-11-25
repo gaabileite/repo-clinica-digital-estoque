@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 /** Corpo de POST /clinics/{clinicId}/returns (E-24, RF-13). */
 export class CreateReturnDto {
@@ -12,7 +12,7 @@ export class CreateReturnDto {
   quantity!: string;
 
   @ApiPropertyOptional({ description: 'Lote existente. Sem ele, informe newLotCode e newLotExpiresOn.' })
-  @IsOptional() @IsString()
+  @IsOptional() @IsUUID()
   lotId?: string;
 
   @ApiPropertyOptional() @IsOptional() @IsString()
