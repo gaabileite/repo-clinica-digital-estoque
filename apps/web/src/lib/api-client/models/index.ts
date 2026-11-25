@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './adjustmentDto';
 export * from './availabilityDto';
 export * from './balancePageDto';
 export * from './balancePageMetaDto';
@@ -13,6 +14,7 @@ export * from './catalogItemDto';
 export * from './catalogItemPageDto';
 export * from './categoryDto';
 export * from './consumptionProfileDto';
+export * from './createAdjustmentDto';
 export * from './createCategoryDto';
 export * from './createItemDto';
 export * from './createReceiptDto';
