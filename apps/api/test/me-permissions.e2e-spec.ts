@@ -23,7 +23,7 @@ describe('GET /me/permissions (e2e)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
-      .useValue({})
+      .useValue({ rolePermission: { findMany: async () => [] } })
       .overrideProvider(TokenVerifier)
       .useValue(fakeVerifier)
       .compile();

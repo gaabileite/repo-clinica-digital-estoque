@@ -2,9 +2,14 @@ import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/standalone.css';
 import { App } from './App';
+import { createDemoInbox } from './features/notifications/demo-inbox';
 
 /** Quadro de teste da execução isolada; não é carregado pelo shell. */
 function ExecucaoIsolada() {
+  const [notificationInbox] = useState(() => {
+    const demo = new URLSearchParams(window.location.search).get('demo-notificacoes') === '1';
+    return demo ? createDemoInbox() : undefined;
+  });
   const [temaEscuro, setTemaEscuro] = useState(() => document.documentElement.classList.contains('dark'));
 
   const alternarTema = () => {
@@ -27,7 +32,7 @@ function ExecucaoIsolada() {
           Tema: {temaEscuro ? 'escuro' : 'claro'}
         </button>
       </div>
-      <App standalone />
+      <App standalone notificationInbox={notificationInbox} />
     </div>
   );
 }
