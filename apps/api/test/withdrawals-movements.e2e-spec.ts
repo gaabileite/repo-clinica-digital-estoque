@@ -58,6 +58,7 @@ describe.skipIf(!url)('withdrawals and movements (e2e, real database)', () => {
     const clinicIds = clinics.map((c) => c.id);
     if (!clinicIds.length) return;
     await prisma.outboxEvent.deleteMany({ where: { clinicId: { in: clinicIds } } });
+    await prisma.alert.deleteMany({ where: { clinicId: { in: clinicIds } } });
     await prisma.movement.deleteMany({ where: { clinicId: { in: clinicIds }, reversalOfId: { not: null } } });
     await prisma.movement.deleteMany({ where: { clinicId: { in: clinicIds } } });
     await prisma.lot.deleteMany({ where: { clinicId: { in: clinicIds } } });
@@ -124,7 +125,9 @@ describe.skipIf(!url)('withdrawals and movements (e2e, real database)', () => {
   describe('POST /clinics/:id/withdrawals (E-18, E4-H1)', () => {
     it('sai do lote de validade mais próxima, baixa o saldo e grava o lançamento no livro', async () => {
       const res = await withdraw({ code: code('Luva'), quantity: '2.000', kind: 'consumption' }).expect(201);
-      expect(res.body).toMatchObject({ kind: 'consumption', quantity: '2.000', usableBalance: '11.000', warnings: [] });
+      expect(res.body).toMatchObject({ kind: 'consumption', quantity: '2.000', usableBalance: '11.000' });
+      // Sem histórico de consumo o limite da RN-10 é 1 unidade: pedir 2 já avisa (a E4-H2 detalha os avisos).
+      expect(res.body.warnings.map((w: { code: string }) => w.code)).toEqual(['QUANTITY_ABOVE_DAILY_AVERAGE']);
       expect(res.body.item).toMatchObject({ name: 'Luva', unit: 'un' });
       expect(res.body.movements).toHaveLength(1);
       expect(res.body.movements[0]).toMatchObject({
