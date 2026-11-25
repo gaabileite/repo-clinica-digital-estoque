@@ -56,7 +56,7 @@ describe('computeBalance (E3-H1)', () => {
     expect(r.criticalLevel).toBe(6);
     expect(r.situation).toBe('reorder');
     expect(r.coverageDays).toBe(10);
-    expect(r.avgDailyConsumption).toBe(2);
+    expect(r.avgDailyConsumption.toString()).toBe('2');
     expect(r.leadTimeSource).toBe('estimated');
   });
 
@@ -68,9 +68,9 @@ describe('computeBalance (E3-H1)', () => {
       ],
       netConsumptionLast30Days: 60,
     }));
-    expect(r.balance).toBe(103);
-    expect(r.usableBalance).toBe(3);
-    expect(r.expiredQuantity).toBe(100);
+    expect(r.balance.toString()).toBe('103');
+    expect(r.usableBalance.toString()).toBe('3');
+    expect(r.expiredQuantity.toString()).toBe('100');
     expect(r.expiredLots).toBe(1);
     expect(r.criticalLevel).toBeGreaterThanOrEqual(7);
     expect(r.situation).toBe('critical');
@@ -78,7 +78,8 @@ describe('computeBalance (E3-H1)', () => {
 
   it('only expired lots: out of stock, level 10, no nearest expiry', () => {
     const r = computeBalance(input({ lots: [{ id: 'v', lotCode: 'V', expiresOn: '2026-10-01', quantity: 5 }], netConsumptionLast30Days: 30 }));
-    expect(r).toMatchObject({ usableBalance: 0, criticalLevel: 10, situation: 'out-of-stock', nearestExpiry: null, expiredLots: 1 });
+    expect(r.usableBalance.toString()).toBe('0');
+    expect(r).toMatchObject({ criticalLevel: 10, situation: 'out-of-stock', nearestExpiry: null, expiredLots: 1 });
   });
 
   it('the nearest expiry is the earliest date among usable lots', () => {
@@ -96,7 +97,7 @@ describe('computeBalance (E3-H1)', () => {
   it('an item with no expiry control has no nearest expiry', () => {
     const r = computeBalance(input({ item: item({ tracksLotAndExpiry: false }), lots: [{ id: 'n', lotCode: '-', expiresOn: null, quantity: 9 }] }));
     expect(r.nearestExpiry).toBeNull();
-    expect(r.usableBalance).toBe(9);
+    expect(r.usableBalance.toString()).toBe('9');
   });
 
   it('no consumption: level 0, coverage null (RN-01, RN-02)', () => {
@@ -106,7 +107,7 @@ describe('computeBalance (E3-H1)', () => {
 
   it('negative net consumption (more returns than withdrawals) counts as zero', () => {
     const r = computeBalance(input({ lots: [{ id: 'l', lotCode: 'L', expiresOn: '2027-01-01', quantity: 4 }], netConsumptionLast30Days: -5 }));
-    expect(r.avgDailyConsumption).toBe(0);
+    expect(r.avgDailyConsumption.toString()).toBe('0');
   });
 
   it('measured lead time replaces the estimate (RN-03) and a bigger safety margin raises the level', () => {

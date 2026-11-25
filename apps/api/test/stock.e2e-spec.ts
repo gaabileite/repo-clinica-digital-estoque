@@ -1,10 +1,11 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { TokenVerifier } from '../src/access/token-verifier';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { civilToday } from '../src/stock/civil-date';
 
 /**
  * E3-H1 and E3-H2 against the real database (balances and lots).
@@ -16,7 +17,8 @@ const url = process.env.TEST_DATABASE_URL;
 const DAY = 864e5;
 const daysFromNow = (n: number) => new Date(Date.now() + n * DAY);
 const civil = (n: number) => {
-  const d = daysFromNow(n);
+  // As validades usam o dia da clínica, mesmo quando o runner já está no dia seguinte em UTC.
+  const d = civilToday(daysFromNow(n));
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 };
 
@@ -31,6 +33,9 @@ describe.skipIf(!url)('stock balances and lots (e2e, real database)', () => {
   const get = (path: string, token = 'admin') => request(app.getHttpServer()).get(path).set('Authorization', `Bearer ${token}`);
 
   beforeAll(async () => {
+    // Em UTC é dia 25; em Recife ainda é dia 24. Congelar apenas Date mantém os timers do banco reais.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-25T01:30:00.000Z'));
     process.env.DATABASE_URL = url;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(TokenVerifier)
@@ -108,8 +113,12 @@ describe.skipIf(!url)('stock balances and lots (e2e, real database)', () => {
   });
 
   afterAll(async () => {
-    await cleanup();
-    await app.close();
+    try {
+      await cleanup();
+      await app.close();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   async function cleanup() {
@@ -253,6 +262,114 @@ describe.skipIf(!url)('stock balances and lots (e2e, real database)', () => {
       await get(`/clinics/${clinicId}/items/${ids['Alheio']}/lots`).expect(404);
       await get(`/clinics/${clinicId}/items/nao-e-uuid/lots`).expect(400);
       await get(`/clinics/${otherClinicId}/items/${ids['Alheio']}/lots`).expect(403);
+    });
+  });
+
+  describe('GET /clinics/:id/items/:itemId/availability (E-14)', () => {
+    const path = (item: string, q = '') => `/clinics/${clinicId}/items/${ids[item]}/availability${q}`;
+
+    it('is available with the suggested lot and the FEFO plan; expired lots do not count (RN-05)', async () => {
+      const res = await get(path('Anestésico', '?quantity=2.5')).expect(200);
+      expect(res.body).toMatchObject({
+        requestedQuantity: '2.500',
+        usableBalance: '3.000',
+        expiredQuantity: '100.000',
+        available: true,
+        shortfall: '0.000',
+        suggestedLot: { lotCode: 'AN-OK', daysToExpiry: 12, quantity: '3.000' },
+        allocations: [{ lotCode: 'AN-OK', quantity: '2.500' }],
+      });
+    });
+
+    it('is not available when only expired stock would cover it, and says what is missing', async () => {
+      const res = await get(path('Anestésico', '?quantity=10')).expect(200);
+      expect(res.body).toMatchObject({ available: false, shortfall: '7.000', allocations: [] });
+      expect(res.body.suggestedLot.lotCode).toBe('AN-OK');
+    });
+
+    it('an item without usable stock has no suggested lot', async () => {
+      const res = await get(path('Inativo', '?quantity=1')).expect(200);
+      expect(res.body).toMatchObject({ available: false, suggestedLot: null, usableBalance: '0.000' });
+    });
+
+    it('rejects a missing, zero, negative or too precise quantity with 400', async () => {
+      for (const q of ['', '?quantity=0', '?quantity=-1', '?quantity=1.2345', '?quantity=abc']) {
+        const res = await get(path('Luva', q)).expect(400);
+        expect(res.body).toMatchObject({ status: 400 });
+      }
+    });
+
+    it('404 for an item of another clinic, 400 for a bad id, 403 for another clinic and the budget controller', async () => {
+      await get(`/clinics/${clinicId}/items/${ids['Alheio']}/availability?quantity=1`).expect(404);
+      await get(`/clinics/${clinicId}/items/nao-e-uuid/availability?quantity=1`).expect(400);
+      await get(`/clinics/${otherClinicId}/items/${ids['Alheio']}/availability?quantity=1`).expect(403);
+      await get(path('Luva', '?quantity=1'), 'budget').expect(403);
+    });
+  });
+
+  describe('GET /clinics/:id/items/:itemId/consumption-profile (E-15)', () => {
+    const path = (item: string) => `/clinics/${clinicId}/items/${ids[item]}/consumption-profile`;
+
+    beforeAll(async () => {
+      const category = await prisma.itemCategory.findFirstOrThrow({ where: { clinicId } });
+      const item = await prisma.item.create({
+        data: { clinicId, code: 'INS-PERFIL', name: 'Perfil', categoryId: category.id, unit: 'un', estimatedLeadTimeDays: 7, expiryAlertLeadDays: 30 },
+      });
+      ids['Perfil'] = item.id;
+      const move = (kind: 'CONSUMPTION' | 'RETURN' | 'REVERSAL', quantity: string, agoDays: number, extra: Record<string, unknown> = {}) =>
+        prisma.movement.create({ data: { clinicId, itemId: item.id, kind, quantity, userId: 'u', occurredAt: daysFromNow(-agoDays), ...extra } });
+      // Learned window (days 15 to 90 ago): 75 in total = 1.000 per day.
+      await move('CONSUMPTION', '-30.000', 60);
+      await move('CONSUMPTION', '-45.000', 40);
+      // Last 14 days: 3 consumed, 1 returned and a reversed consumption that must not count.
+      await move('CONSUMPTION', '-3.000', 5);
+      await move('RETURN', '1.000', 3);
+      const reversed = await move('CONSUMPTION', '-50.000', 6);
+      await move('REVERSAL', '50.000', 6, { reversalOfId: reversed.id });
+      // Older than 90 days: outside every window.
+      await move('CONSUMPTION', '-900.000', 120);
+    });
+
+    it('gives the three averages and the drop indicator (RN-11)', async () => {
+      const res = await get(path('Perfil')).expect(200);
+      expect(res.body).toEqual({
+        avgDailyLast30Days: '0.067', // net 2 over 30 days
+        learnedAvgDaily: '1.000',
+        avgDailyLast14Days: '0.143', // net 2 over 14 days
+        dropPercent: 85.7,
+        dropThresholdPercent: 50,
+        dropDetected: true,
+      });
+    });
+
+    it('the drop threshold comes from the consumptionDropPercent parameter', async () => {
+      const before = await prisma.setting.findUnique({ where: { key: 'consumptionDropPercent' } });
+      await prisma.setting.upsert({ where: { key: 'consumptionDropPercent' }, update: { value: 90 }, create: { key: 'consumptionDropPercent', value: 90 } });
+      try {
+        expect((await get(path('Perfil')).expect(200)).body).toMatchObject({ dropThresholdPercent: 90, dropDetected: false });
+      } finally {
+        if (before) await prisma.setting.update({ where: { key: 'consumptionDropPercent' }, data: { value: before.value as number } });
+        else await prisma.setting.delete({ where: { key: 'consumptionDropPercent' } });
+      }
+    });
+
+    it('an item with no history has zero averages and no drop', async () => {
+      const res = await get(path('Papel')).expect(200);
+      expect(res.body).toEqual({
+        avgDailyLast30Days: '0.000',
+        learnedAvgDaily: '0.000',
+        avgDailyLast14Days: '0.000',
+        dropPercent: null,
+        dropThresholdPercent: 50,
+        dropDetected: false,
+      });
+    });
+
+    it('404 for an item of another clinic, 400 for a bad id, 403 for another clinic and the budget controller', async () => {
+      await get(`/clinics/${clinicId}/items/${ids['Alheio']}/consumption-profile`).expect(404);
+      await get(`/clinics/${clinicId}/items/nao-e-uuid/consumption-profile`).expect(400);
+      await get(`/clinics/${otherClinicId}/items/${ids['Alheio']}/consumption-profile`).expect(403);
+      await get(path('Perfil'), 'budget').expect(403);
     });
   });
 });

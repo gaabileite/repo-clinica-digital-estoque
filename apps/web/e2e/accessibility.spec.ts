@@ -25,6 +25,15 @@ for (const dark of [false, true]) {
         }),
       );
 
+      if (isRegistrations) {
+        await page.route('**/api/v1/clinics/clinic-test/items?*', (route) =>
+          route.fulfill({ json: { data: [], page: { total: 0, nextCursor: null } } }),
+        );
+        await page.route('**/api/v1/clinics/clinic-test/item-categories', (route) =>
+          route.fulfill({ json: { data: [] } }),
+        );
+      }
+
       await page.goto(screen.path);
 
       await expect(
@@ -33,6 +42,10 @@ for (const dark of [false, true]) {
           exact: true,
         }),
       ).toBeVisible();
+
+      if (isRegistrations) {
+        await expect(page.getByText('Nenhum insumo encontrado', { exact: true })).toBeVisible();
+      }
 
       await page.evaluate((enabled) => {
         document.documentElement.classList.toggle('dark', enabled);

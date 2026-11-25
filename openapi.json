@@ -866,11 +866,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "quantity",
+            "required": true,
+            "in": "query",
+            "description": "Quantidade pedida: string decimal positiva, até 3 casas.",
+            "schema": {
+              "example": "2.500",
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityDto"
+                }
+              }
+            }
           }
         },
         "summary": "Disponibilidade para consumo e lote sugerido (E-14)",
@@ -902,7 +919,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumptionProfileDto"
+                }
+              }
+            }
           }
         },
         "summary": "Consumo médio de 30 dias e média aprendida (E-15)",
@@ -1246,11 +1270,37 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Chave única da operação (contrato, seção 2).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdjustmentDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdjustmentDto"
+                }
+              }
+            }
           }
         },
         "summary": "Ajuste de inventário de um lote, com justificativa (E-26)",
@@ -2752,6 +2802,157 @@
           "data"
         ]
       },
+      "SuggestedLotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210"
+          },
+          "expiresOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2027-06-02"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "3.000",
+            "description": "Saldo do lote."
+          },
+          "daysToExpiry": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "lotCode",
+          "expiresOn",
+          "quantity",
+          "daysToExpiry"
+        ]
+      },
+      "LotAllocationDto": {
+        "type": "object",
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-210"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2.000"
+          }
+        },
+        "required": [
+          "lotId",
+          "lotCode",
+          "quantity"
+        ]
+      },
+      "AvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "requestedQuantity": {
+            "type": "string",
+            "example": "2.500"
+          },
+          "usableBalance": {
+            "type": "string",
+            "example": "12.000",
+            "description": "Saldo utilizável, sem lotes vencidos (RN-05)."
+          },
+          "expiredQuantity": {
+            "type": "string",
+            "example": "0.000",
+            "description": "Quantidade em lotes vencidos, fora da disponibilidade."
+          },
+          "available": {
+            "type": "boolean",
+            "description": "O saldo utilizável cobre a quantidade pedida."
+          },
+          "shortfall": {
+            "type": "string",
+            "example": "0.000",
+            "description": "Quanto falta para cobrir o pedido."
+          },
+          "suggestedLot": {
+            "nullable": true,
+            "description": "Primeiro lote utilizável na ordem FEFO (RN-04).",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuggestedLotDto"
+              }
+            ]
+          },
+          "allocations": {
+            "description": "Como a retirada sairia dos lotes; vazio sem saldo suficiente.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LotAllocationDto"
+            }
+          }
+        },
+        "required": [
+          "requestedQuantity",
+          "usableBalance",
+          "expiredQuantity",
+          "available",
+          "shortfall",
+          "suggestedLot",
+          "allocations"
+        ]
+      },
+      "ConsumptionProfileDto": {
+        "type": "object",
+        "properties": {
+          "avgDailyLast30Days": {
+            "type": "string",
+            "example": "0.567",
+            "description": "Média diária dos últimos 30 dias, líquida de devoluções e estornos (RN-02)."
+          },
+          "learnedAvgDaily": {
+            "type": "string",
+            "example": "0.800",
+            "description": "Média diária aprendida nos dias 15 a 90 antes de hoje (RN-11)."
+          },
+          "avgDailyLast14Days": {
+            "type": "string",
+            "example": "0.286",
+            "description": "Média diária dos últimos 14 dias."
+          },
+          "dropPercent": {
+            "type": "number",
+            "nullable": true,
+            "example": 64.3,
+            "description": "Queda da média recente sobre a aprendida, em %; nulo sem média aprendida."
+          },
+          "dropThresholdPercent": {
+            "type": "number",
+            "example": 50,
+            "description": "Limite de queda configurado (`consumptionDropPercent`)."
+          },
+          "dropDetected": {
+            "type": "boolean",
+            "description": "Indicador de queda: média aprendida de pelo menos 0,15 por dia e queda igual ou maior que o limite."
+          }
+        },
+        "required": [
+          "avgDailyLast30Days",
+          "learnedAvgDaily",
+          "avgDailyLast14Days",
+          "dropPercent",
+          "dropThresholdPercent",
+          "dropDetected"
+        ]
+      },
       "CreateWithdrawalDto": {
         "type": "object",
         "properties": {
@@ -2828,6 +3029,64 @@
           "code",
           "quantity",
           "returnedBy"
+        ]
+      },
+      "CreateAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "countedQuantity": {
+            "type": "string",
+            "example": "12.500",
+            "description": "Quantidade contada no lote: decimal não negativo, até 3 casas (zero é permitido)."
+          },
+          "justification": {
+            "type": "string",
+            "example": "Contagem física de novembro",
+            "maxLength": 500,
+            "description": "Obrigatória: se vazia, a API responde 422 STOCK_JUSTIFICATION_REQUIRED."
+          }
+        },
+        "required": [
+          "countedQuantity"
+        ]
+      },
+      "AdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "movementId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id da movimentação gerada; nulo quando a contagem era igual ao saldo e nada mudou."
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "previousQuantity": {
+            "type": "string",
+            "example": "10.000",
+            "description": "Saldo do lote antes do ajuste."
+          },
+          "countedQuantity": {
+            "type": "string",
+            "example": "8.000",
+            "description": "Quantidade contada, que passa a ser o saldo do lote."
+          },
+          "difference": {
+            "type": "string",
+            "example": "-2.000",
+            "description": "Contado menos o saldo anterior (negativo = faltava no sistema)."
+          }
+        },
+        "required": [
+          "movementId",
+          "lotId",
+          "itemId",
+          "previousQuantity",
+          "countedQuantity",
+          "difference"
         ]
       },
       "ReceiptLineDto": {

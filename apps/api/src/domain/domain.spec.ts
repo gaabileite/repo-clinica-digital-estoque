@@ -29,8 +29,8 @@ describe('RN-01 nível crítico', () => {
 
 describe('RN-02 e RN-03', () => {
   it('consumo médio e cobertura', () => {
-    expect(averageDailyConsumption(60)).toBe(2);
-    expect(coverageDays(20, 2)).toBe(10);
+    expect(averageDailyConsumption(60).toString()).toBe('2');
+    expect(coverageDays(20, 2)?.toString()).toBe('10');
     expect(coverageDays(20, 0)).toBeNull();
   });
   it('tempo de reposição medido ou estimado', () => {
@@ -58,14 +58,28 @@ describe('RN-04 FEFO', () => {
   it('sugere a validade mais próxima e ignora o lote vencido', () => {
     const r = allocateFefo(lots, 4, '2026-11-05');
     expect(r).toMatchObject({ ok: true, suggestedLotId: 'b', notNearest: false });
-    if (r.ok) expect(r.allocations).toEqual([{ lotId: 'b', quantity: 3 }, { lotId: 'a', quantity: 1 }]);
+    if (r.ok) expect(r.allocations.map((a) => [a.lotId, a.quantity.toString()])).toEqual([['b', '3'], ['a', '1']]);
   });
   it('recusa quando o saldo utilizável não basta (lote vencido não conta)', () => {
-    expect(allocateFefo(lots, 13, '2026-11-05')).toEqual({ ok: false, code: 'STOCK_INSUFFICIENT', available: 12 });
+    expect(allocateFefo(lots, 13, '2026-11-05')).toMatchObject({ ok: false, code: 'STOCK_INSUFFICIENT' });
+    const r = allocateFefo(lots, 13, '2026-11-05');
+    if (!r.ok) expect(r.available.toString()).toBe('12');
   });
   it('avisa quando o usuário escolhe outro lote (RN-09)', () => {
     const r = allocateFefo(lots, 2, '2026-11-05', 'a');
     expect(r).toMatchObject({ ok: true, suggestedLotId: 'b', notNearest: true });
+  });
+});
+
+describe('Decimal: sem erro de ponto flutuante', () => {
+  it('0,1 + 0,2 é exatamente 0,3 nas somas de lotes', () => {
+    const r = allocateFefo([{ id: 'a', expiresOn: null, quantity: '0.1' }, { id: 'b', expiresOn: null, quantity: '0.2' }], '0.3', '2026-11-05');
+    expect(r.ok).toBe(true);
+    const short = allocateFefo([{ id: 'a', expiresOn: null, quantity: '0.1' }, { id: 'b', expiresOn: null, quantity: '0.2' }], '0.301', '2026-11-05');
+    expect(short.ok).toBe(false);
+  });
+  it('consumo médio de 0,001 em 30 dias não vira zero nem dízima', () => {
+    expect(averageDailyConsumption('0.9').toString()).toBe('0.03');
   });
 });
 
@@ -97,10 +111,12 @@ describe('casos de borda das regras', () => {
   it('RN-04: lote sem validade sai por último', () => {
     const lots = [{ id: 'n', expiresOn: null, quantity: 5 }, { id: 'a', expiresOn: '2027-01-01', quantity: 1 }];
     const r = allocateFefo(lots, 3, '2026-11-05');
-    if (r.ok) expect(r.allocations).toEqual([{ lotId: 'a', quantity: 1 }, { lotId: 'n', quantity: 2 }]);
+    if (r.ok) expect(r.allocations.map((a) => [a.lotId, a.quantity.toString()])).toEqual([['a', '1'], ['n', '2']]);
   });
   it('RN-04: lote zerado não conta como saldo', () => {
-    expect(allocateFefo([{ id: 'z', expiresOn: '2027-01-01', quantity: 0 }], 1, '2026-11-05')).toEqual({ ok: false, code: 'STOCK_INSUFFICIENT', available: 0 });
+    const r = allocateFefo([{ id: 'z', expiresOn: '2027-01-01', quantity: 0 }], 1, '2026-11-05');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.available.toString()).toBe('0');
   });
 });
 

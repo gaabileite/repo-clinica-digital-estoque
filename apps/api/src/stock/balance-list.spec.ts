@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyBalanceQuery, decodeCursor, encodeCursor, normalizeText, parseSort } from './balance-list';
+import { Decimal } from '../domain';
 import type { ItemBalance } from './stock-metrics';
 
 let seq = 0;
@@ -8,8 +9,8 @@ const row = (over: Partial<ItemBalance> & { name?: string; code?: string; catego
   const { name = `Item ${seq}`, code = `INS-${String(seq).padStart(4, '0')}`, categoryId = 'c1', tracks = true, temp = false, ...rest } = over;
   return {
     item: { id: `i${seq}`, code, name, categoryId, categoryName: 'Cat', unit: 'un', tracksLotAndExpiry: tracks, recordsTemperature: temp, active: true, expiryAlertLeadDays: 30, estimatedLeadTimeDays: 7 },
-    balance: 10, usableBalance: 10, expiredQuantity: 0, expiredLots: 0, expiringLots: 0, nearestExpiry: null,
-    avgDailyConsumption: 1, coverageDays: 10, leadTimeDays: 7, leadTimeSource: 'estimated', criticalLevel: 1, situation: 'adequate', ...rest,
+    balance: new Decimal(10), usableBalance: new Decimal(10), expiredQuantity: new Decimal(0), expiredLots: 0, expiringLots: 0, nearestExpiry: null,
+    avgDailyConsumption: new Decimal(1), coverageDays: 10, leadTimeDays: 7, leadTimeSource: 'estimated', criticalLevel: 1, situation: 'adequate', ...rest,
   };
 };
 const exp = (days: number) => ({ lotId: 'l', lotCode: 'L', expiresOn: '2027-01-01', daysToExpiry: days, status: 'valid' as const });

@@ -1,16 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { notImplemented } from '../common/not-implemented';
-import type { LeadTimeSample } from '../domain';
+import { computeAvailability } from './availability';
+import { computeConsumptionProfile, DEFAULT_CONSUMPTION_DROP_PERCENT, LEARNED_WINDOW, RECENT_DAYS } from './consumption-profile';
+import { dec, toQuantityString, type LeadTimeSample } from '../domain';
 import { applyBalanceQuery } from './balance-list';
-import { civilToday, dateColumnToCivil } from './civil-date';
+import { civilToday, civilToIso, dateColumnToCivil } from './civil-date';
 import type { ListBalancesQueryDto } from './dto/list-balances-query.dto';
-import type { BalancePageDto, ItemBalanceDto, LotListDto } from './dto/stock-responses.dto';
+import type { AvailabilityDto, BalancePageDto, ConsumptionProfileDto, ItemBalanceDto, LotListDto } from './dto/stock-responses.dto';
 import { classifyLots, computeBalance, type ItemBalance } from './stock-metrics';
 
 const DAY_MS = 864e5;
 const DEFAULT_SAFETY_MARGIN_PERCENT = 20;
-const dec = (n: number, places = 3): string => n.toFixed(places);
 
 @Injectable()
 export class StockService {
@@ -32,7 +34,7 @@ export class StockService {
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', detail: 'Insumo não encontrado nesta clínica.' });
 
     const lots = classifyLots(
-      item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: Number(l.quantity) })),
+      item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) })),
       item.expiryAlertLeadDays,
       civilToday(),
     );
@@ -42,7 +44,7 @@ export class StockService {
         id: l.id,
         lotCode: l.lotCode,
         expiresOn: l.expiresOn,
-        quantity: dec(l.quantity),
+        quantity: toQuantityString(l.quantity),
         status: l.status,
         daysToExpiry: l.daysToExpiry,
         usable: l.usable,
@@ -80,7 +82,7 @@ export class StockService {
     ]);
 
     // The ledger stores consumption as negative and returns as positive, so net consumption is minus the sum.
-    const netByItem = new Map(consumption.map((c) => [c.itemId, -Number(c._sum.quantity ?? 0)]));
+    const netByItem = new Map(consumption.map((c) => [c.itemId, dec(c._sum.quantity ?? 0).negated()]));
     const samplesByItem = new Map<string, LeadTimeSample[]>();
     for (const line of receiptLines) {
       const list = samplesByItem.get(line.itemId) ?? [];
@@ -105,8 +107,8 @@ export class StockService {
           expiryAlertLeadDays: item.expiryAlertLeadDays,
           estimatedLeadTimeDays: item.estimatedLeadTimeDays,
         },
-        lots: item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: Number(l.quantity) })),
-        netConsumptionLast30Days: netByItem.get(item.id) ?? 0,
+        lots: item.lots.map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) })),
+        netConsumptionLast30Days: netByItem.get(item.id) ?? dec(0),
         leadTimeSamples: samplesByItem.get(item.id) ?? [],
         safetyMarginPercent,
         today,
@@ -114,11 +116,53 @@ export class StockService {
     );
   }
 
-  availability(_clinicId: string, _itemId: string, _query: Record<string, string>): Promise<never> {
-    return notImplemented('E-14', 'Disponibilidade para consumo e lote sugerido');
+  /** E-14: availability for consumption (no expired lots, RN-05) and the FEFO suggested lot (RN-04). */
+  async availability(clinicId: string, itemId: string, quantity: string): Promise<AvailabilityDto> {
+    const item = await this.findItem(clinicId, itemId, true);
+    const today = civilToday();
+    return computeAvailability(
+      (item.lots ?? []).map((l) => ({ id: l.id, lotCode: l.lotCode, expiresOn: dateColumnToCivil(l.expiresOn), quantity: dec(l.quantity) })),
+      quantity,
+      item.expiryAlertLeadDays,
+      today,
+      civilToIso(today),
+    );
   }
-  consumptionProfile(_clinicId: string, _itemId: string): Promise<never> {
-    return notImplemented('E-15', 'Consumo médio de 30 dias e média aprendida');
+
+  /** E-15: 30-day average, learned average (days 15 to 90) and last-14-day average with the drop indicator (RN-11). */
+  async consumptionProfile(clinicId: string, itemId: string, now: Date = new Date()): Promise<ConsumptionProfileDto> {
+    await this.findItem(clinicId, itemId);
+    const ago = (days: number) => new Date(now.getTime() - days * DAY_MS);
+    // Net consumption = consumption minus returns; reversed consumption does not count (RN-02, RN-07).
+    // The ledger stores consumption as negative and returns as positive, so net consumption is minus the sum.
+    const net = async (from: Date, to: Date) => {
+      const sum = await this.prisma.movement.aggregate({
+        where: { clinicId, itemId, kind: { in: ['CONSUMPTION', 'RETURN'] }, occurredAt: { gte: from, lt: to }, reversal: { is: null } },
+        _sum: { quantity: true },
+      });
+      return dec(sum._sum.quantity ?? 0).negated();
+    };
+    const [last30, learned, last14, drop] = await Promise.all([
+      net(ago(30), now),
+      net(ago(LEARNED_WINDOW.fromDaysAgo), ago(LEARNED_WINDOW.toDaysAgo)),
+      net(ago(RECENT_DAYS), now),
+      this.prisma.setting.findUnique({ where: { key: 'consumptionDropPercent' } }),
+    ]);
+    return computeConsumptionProfile({
+      netLast30Days: last30,
+      netLearnedWindow: learned,
+      netLast14Days: last14,
+      dropThresholdPercent: typeof drop?.value === 'number' ? drop.value : DEFAULT_CONSUMPTION_DROP_PERCENT,
+    });
+  }
+
+  private async findItem(clinicId: string, itemId: string, withLots = false) {
+    const item = await this.prisma.item.findFirst({
+      where: { id: itemId, clinicId },
+      include: withLots ? { lots: { where: { quantity: { gt: 0 } }, select: { id: true, lotCode: true, expiresOn: true, quantity: true } } } : undefined,
+    });
+    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', detail: 'Insumo não encontrado nesta clínica.' });
+    return item as typeof item & { lots?: { id: string; lotCode: string; expiresOn: Date | null; quantity: Prisma.Decimal }[] };
   }
   leadTime(_clinicId: string, _itemId: string): Promise<never> {
     return notImplemented('E-33', 'Tempo de reposição medido ou estimado');
@@ -136,13 +180,13 @@ export function toBalanceDto(b: ItemBalance): ItemBalanceDto {
     tracksLotAndExpiry: b.item.tracksLotAndExpiry,
     recordsTemperature: b.item.recordsTemperature,
     active: b.item.active,
-    balance: dec(b.balance),
-    usableBalance: dec(b.usableBalance),
-    expiredQuantity: dec(b.expiredQuantity),
+    balance: toQuantityString(b.balance),
+    usableBalance: toQuantityString(b.usableBalance),
+    expiredQuantity: toQuantityString(b.expiredQuantity),
     expiredLots: b.expiredLots,
     expiringLots: b.expiringLots,
     nearestExpiry: b.nearestExpiry,
-    avgDailyConsumption: dec(b.avgDailyConsumption),
+    avgDailyConsumption: toQuantityString(b.avgDailyConsumption),
     coverageDays: b.coverageDays,
     leadTimeDays: b.leadTimeDays,
     leadTimeSource: b.leadTimeSource,
