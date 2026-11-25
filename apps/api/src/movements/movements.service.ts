@@ -11,7 +11,7 @@ import { Prisma, type MovementKind } from '@prisma/client';
 import { isUUID } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthContext } from '../access/auth-context';
-import { permissionsOf } from '../access/permissions';
+import { PermissionMatrixService } from '../access/permission-matrix.service';
 import { storageKey } from '../common/idempotency/idempotency';
 import { toQuantityString } from '../domain';
 import { EventPublisher } from '../events/event-publisher.service';
@@ -69,6 +69,7 @@ export class MovementsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventPublisher,
+    private readonly matrix: PermissionMatrixService,
   ) {}
 
   /**
@@ -167,7 +168,8 @@ export class MovementsService {
         if (!movement.lotId) {
           throw new ConflictException({ code: 'STOCK_REVERSAL_NOT_ALLOWED', detail: 'O lote desta movimentação não existe mais.' });
         }
-        if (!permissionsOf(auth.profile).includes('stock:reverse')) {
+        // Matriz efetiva (E1-H3), não a padrão: um perfil que perdeu stock:reverse só estorna a própria saída.
+        if (!this.matrix.permissionsOf(auth.profile).includes('stock:reverse')) {
           if (movement.userId !== auth.userId) {
             throw new ForbiddenException({ code: 'FORBIDDEN', detail: 'Você só pode estornar a sua própria saída.' });
           }

@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { AuthContext } from '../src/access/auth-context';
+import { PermissionMatrixService } from '../src/access/permission-matrix.service';
 import { TokenVerifier } from '../src/access/token-verifier';
 import { AppModule } from '../src/app.module';
 import { REQUESTS_ADAPTER } from '../src/integrations/requests/requests.adapter';
@@ -303,22 +304,52 @@ describe.skipIf(!url)('avisos, estorno, entrada e nível crítico (e2e, real dat
       expect(await quantityOf('gaze')).toBe('20.000');
     });
 
-    it('quem não tem a permissão de estorno só estorna a própria saída, em até 24 horas', async () => {
-      // Nenhum perfil padrão tem stock:withdraw sem stock:reverse; este caso cobre a regra de negócio da RN-07
-      // pelo contrato do serviço, com um perfil que só retira.
-      const { MovementsService } = await import('../src/movements/movements.service');
-      const service = app.get(MovementsService);
-      const mine = await withdraw({ code: codes.Gaze, quantity: '1.000', kind: 'consumption' }, 'warehouse').expect(201);
-      const mineId = mine.body.movements[0].id as string;
-      const theirs = await withdraw({ code: codes.Gaze, quantity: '1.000', kind: 'consumption' }, 'admin').expect(201);
-      const onlyWithdraws: AuthContext = { userId: 'e2e-flow-wh', profile: 'budget-controller', clinicIds: [clinicId] };
+    describe('perfil que perdeu stock:reverse mas manteve stock:withdraw (matriz editável, E1-H3)', () => {
+      const without = ['stock:read', 'stock:withdraw', 'stock:receive', 'stock:adjust'] as const;
+      let saved: { profile: 'WAREHOUSE'; permission: string }[] = [];
 
-      await expect(service.reverse(clinicId, theirs.body.movements[0].id, onlyWithdraws, 'e2e-flow-k1', { reason: 'x' })).rejects.toMatchObject({ status: 403 });
-      await prisma.movement.update({ where: { id: mineId }, data: { occurredAt: new Date(Date.now() - 25 * 3600_000) } });
-      await expect(service.reverse(clinicId, mineId, onlyWithdraws, 'e2e-flow-k2', { reason: 'x' })).rejects.toMatchObject({ status: 403 });
-      await prisma.movement.update({ where: { id: mineId }, data: { occurredAt: new Date(Date.now() - 23 * 3600_000) } });
-      await expect(service.reverse(clinicId, mineId, onlyWithdraws, 'e2e-flow-k3', { reason: 'engano' })).resolves.toMatchObject({ kind: 'reversal', reversalOfId: mineId });
-      await reverse(theirs.body.movements[0].id).expect(201); // quem tem a permissão estorna a saída de qualquer usuário
+      beforeAll(async () => {
+        saved = await prisma.rolePermission.findMany({ where: { profile: 'WAREHOUSE' }, select: { profile: true, permission: true } }) as typeof saved;
+        const matrix = app.get(PermissionMatrixService);
+        await matrix.replace('warehouse', [...without], 'e2e-flow-super');
+      });
+
+      afterAll(async () => {
+        // Devolve a matriz como estava, no banco e na memória.
+        await prisma.rolePermission.deleteMany({ where: { profile: 'WAREHOUSE' } });
+        if (saved.length) await prisma.rolePermission.createMany({ data: saved });
+        await prisma.auditEntry.deleteMany({ where: { userId: 'e2e-flow-super', entity: 'role-permissions' } });
+        await app.get(PermissionMatrixService).reload();
+      });
+
+      const outflow = async (token: 'admin' | 'warehouse') => (await withdraw({ code: codes.Gaze, quantity: '1.000', kind: 'consumption' }, token).expect(201)).body.movements[0].id as string;
+
+      it('a saída de outra pessoa não é estornada: 403 e nada muda', async () => {
+        const theirs = await outflow('admin');
+        const balance = await quantityOf('gaze');
+        const res = await reverse(theirs, { reason: 'x' }, 'warehouse').expect(403);
+        expect(res.body.detail).toContain('própria saída');
+        expect(await quantityOf('gaze')).toBe(balance);
+        expect(await prisma.movement.count({ where: { reversalOfId: theirs } })).toBe(0);
+        await reverse(theirs, { reason: 'Engano' }, 'admin').expect(201); // quem ainda tem stock:reverse estorna de qualquer usuário
+      });
+
+      it('a própria saída é estornada em até 24 horas', async () => {
+        const mine = await outflow('warehouse');
+        await prisma.movement.update({ where: { id: mine }, data: { occurredAt: new Date(Date.now() - 23 * 3600_000) } });
+        const res = await reverse(mine, { reason: 'Engano meu' }, 'warehouse').expect(201);
+        expect(res.body).toMatchObject({ kind: 'reversal', reversalOfId: mine, userId: 'e2e-flow-wh' });
+      });
+
+      it('depois de 24 horas nem a própria saída é estornada: 403', async () => {
+        const mine = await outflow('warehouse');
+        await prisma.movement.update({ where: { id: mine }, data: { occurredAt: new Date(Date.now() - 25 * 3600_000) } });
+        const balance = await quantityOf('gaze');
+        const res = await reverse(mine, { reason: 'Tarde demais' }, 'warehouse').expect(403);
+        expect(res.body.detail).toContain('24 horas');
+        expect(await quantityOf('gaze')).toBe(balance);
+        await reverse(mine, { reason: 'Engano' }, 'admin').expect(201);
+      });
     });
 
     it('404 para movimentação de outra clínica ou inexistente; 400 para id inválido', async () => {
