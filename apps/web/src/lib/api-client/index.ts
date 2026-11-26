@@ -36,6 +36,9 @@ import type {
   PendingRequestDto,
   ProblemDetailsDto,
   ReceiptDto,
+  ReceiptNoteDetailDto,
+  ReceiptNotePageDto,
+  ReceiptsControllerListParams,
   ReplaceRolePermissionsDto,
   ReverseMovementDto,
   ReverseReceiptDto,
@@ -1441,7 +1444,7 @@ return customFetch<receiptsControllerCreateResponse>(getReceiptsControllerCreate
 
 
 export type receiptsControllerListResponse200 = {
-  data: void
+  data: ReceiptNotePageDto
   status: 200
 }
 
@@ -1452,20 +1455,29 @@ export type receiptsControllerListResponseSuccess = (receiptsControllerListRespo
 
 export type receiptsControllerListResponse = (receiptsControllerListResponseSuccess)
 
-export const getReceiptsControllerListUrl = (clinicId: string,) => {
+export const getReceiptsControllerListUrl = (clinicId: string,
+    params?: ReceiptsControllerListParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/receipts`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/receipts?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/receipts`
 }
 
 /**
  * @summary Lista notas de recebimento (E-28)
  */
-export const receiptsControllerList = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<receiptsControllerListResponse> => {
+export const receiptsControllerList = async (clinicId: string,
+    params?: ReceiptsControllerListParams, options?: Parameters<typeof customFetch>[1]): Promise<receiptsControllerListResponse> => {
 
-  return customFetch<receiptsControllerListResponse>(getReceiptsControllerListUrl(clinicId),
+  return customFetch<receiptsControllerListResponse>(getReceiptsControllerListUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
@@ -1477,7 +1489,7 @@ export const receiptsControllerList = async (clinicId: string, options?: Paramet
 
 
 export type receiptsControllerDetailResponse200 = {
-  data: void
+  data: ReceiptNoteDetailDto
   status: 200
 }
 
