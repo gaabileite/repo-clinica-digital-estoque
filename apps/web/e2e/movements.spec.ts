@@ -206,7 +206,8 @@ test('ajuste sem diferença informa que não criou movimentação', async ({ pag
 });
 
 for (const dark of [false, true]) {
-  test(`acessibilidade da tabela e do ajuste no tema ${dark ? 'escuro' : 'claro'}`, async ({ page }) => {
+  test(`acessibilidade da tabela, do ajuste e do estorno no tema ${dark ? 'escuro' : 'claro'}`, async ({ page }) => {
+    await session(page, ['stock:read', 'stock:adjust', 'stock:withdraw', 'stock:reverse']);
     await page.goto('/movements');
     await expect(page.getByRole('rowheader', { name: 'Luva INS-0001' })).toBeVisible();
     await page.evaluate((enabled) => document.documentElement.classList.toggle('dark', enabled), dark);
@@ -216,7 +217,69 @@ for (const dark of [false, true]) {
     expect((await scan()).violations).toEqual([]);
     await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'Ajustar inventário', exact: true })).toBeFocused();
+    const reverse = page.getByRole('button', { name: 'Estornar', exact: true });
+    await reverse.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog', { name: 'Estornar movimentação' })).toBeVisible();
+    expect((await scan()).violations).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(reverse).toBeFocused();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 }
+
+test('estorna uma saída, conserva o motivo e a chave no reenvio, e atualiza o histórico', async ({ page }) => {
+  await session(page, ['stock:read', 'stock:withdraw', 'stock:reverse']);
+  const reversalUrl = `**/api/v1/clinics/${clinicId}/movements/m1/reversals`;
+  const keys: string[] = [];
+  let recorded = false;
+
+  await page.route(movementsUrl, (route) => route.fulfill({ json: response(recorded ? [
+    { ...movement, id: 'm2', kind: 'reversal', quantity: '2.125', reason: 'Contagem incorreta', reversalOfId: 'm1' },
+    { ...movement, reversedById: 'm2' },
+  ] : [movement, { ...movement, id: 'entry', kind: 'entry', quantity: '1.000' }]) }));
+  await page.route(reversalUrl, (route) => {
+    const request = route.request();
+    expect(request.method()).toBe('POST');
+    expect(request.postDataJSON()).toEqual({ reason: 'Contagem incorreta' });
+    keys.push(request.headers()['idempotency-key']);
+    if (keys.length === 1) return route.fulfill({ status: 503, json: { detail: 'Serviço ocupado. Tente novamente.' } });
+    recorded = true;
+    return route.fulfill({ status: 201, json: { id: 'm2', kind: 'reversal', reversalOfId: 'm1' } });
+  });
+  await page.goto('/movements');
+  const action = page.getByRole('button', { name: 'Estornar', exact: true });
+  await expect(action).toHaveCount(1);
+  await action.click();
+  const dialog = page.getByRole('dialog', { name: 'Estornar movimentação' });
+  const reason = dialog.getByLabel('Motivo do estorno');
+  const confirm = dialog.getByRole('button', { name: 'Confirmar estorno' });
+  await confirm.click();
+  expect(keys).toEqual([]);
+  await reason.fill('Contagem incorreta');
+  await confirm.click();
+  await expect(dialog.getByRole('alert')).toHaveText('Serviço ocupado. Tente novamente.');
+  await expect(reason).toHaveValue('Contagem incorreta');
+  await confirm.click();
+  await expect(page.getByText('Estorno registrado no histórico.')).toBeFocused();
+  await expect(page.getByText('Estornada', { exact: true })).toBeVisible();
+  await expect(action).toHaveCount(0);
+  expect(keys[0]).toBeTruthy();
+  expect(keys).toEqual([keys[0], keys[0]]);
+});
+
+test('estorno conserva o formulário e explica a recusa por autoria', async ({ page }) => {
+  await session(page, ['stock:read', 'stock:withdraw']);
+  await page.route(`**/api/v1/clinics/${clinicId}/movements/m1/reversals`, (route) => route.fulfill({
+    status: 403, json: { detail: 'Você só pode estornar a sua própria saída.' },
+  }));
+  await page.goto('/movements');
+  await page.getByRole('button', { name: 'Estornar', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Estornar movimentação' });
+  await expect(dialog.getByText(/próprias saídas em até 24 horas/)).toBeVisible();
+  await dialog.getByLabel('Motivo do estorno').fill('Correção');
+  await dialog.getByRole('button', { name: 'Confirmar estorno' }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('Você só pode estornar a sua própria saída.');
+  await expect(dialog.getByLabel('Motivo do estorno')).toHaveValue('Correção');
+});

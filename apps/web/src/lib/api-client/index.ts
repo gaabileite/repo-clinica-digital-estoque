@@ -15,26 +15,40 @@ import type {
   ConsumptionProfileDto,
   CreateAdjustmentDto,
   CreateCategoryDto,
+  CreateIncorrectReceiptDto,
   CreateItemDto,
   CreateReceiptDto,
   CreateReturnDto,
   CreateWithdrawalDto,
+  DashboardControllerWeeklyConsumptionParams,
+  DashboardDto,
+  DiscardIncorrectReceiptDto,
+  ExchangeIncorrectReceiptDto,
+  IncorporateIncorrectReceiptDto,
+  IncorporationDto,
+  IncorrectReceiptDto,
   ItemsControllerListParams,
   LotListDto,
   MovementDto,
   MovementPageDto,
   MovementsControllerListParams,
   MyPermissionsDto,
+  PendingRequestDto,
   ProblemDetailsDto,
   ReceiptDto,
   ReplaceRolePermissionsDto,
   ReverseMovementDto,
   RolePermissionsDto,
+  SettingsDto,
   StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
   UpdateItemDto,
-  WithdrawalDto
+  UpdateSettingsDto,
+  WeeklyConsumptionDto,
+  WithdrawalDto,
+  WriteOffDto,
+  WriteOffExpiredLotsDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -937,7 +951,7 @@ return customFetch<withdrawalsControllerCreateResponse>(getWithdrawalsController
 
 
 export type withdrawalsControllerWriteOffExpiredLotsResponse201 = {
-  data: void
+  data: WriteOffDto
   status: 201
 }
 
@@ -957,16 +971,32 @@ export const getWithdrawalsControllerWriteOffExpiredLotsUrl = (clinicId: string,
 }
 
 /**
+ * Sem `lotIds`, baixa todos os lotes vencidos com saldo da clínica. Com `lotIds`, só os escolhidos (422 se algum não for um lote vencido desta clínica).
  * @summary Baixa lotes vencidos como perda por validade (E-23)
  */
-export const withdrawalsControllerWriteOffExpiredLots = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<withdrawalsControllerWriteOffExpiredLotsResponse> => {
+export const withdrawalsControllerWriteOffExpiredLots = async (clinicId: string,
+    writeOffExpiredLotsDto: WriteOffExpiredLotsDto, options?: Parameters<typeof customFetch>[1]): Promise<withdrawalsControllerWriteOffExpiredLotsResponse> => {
 
-  return customFetch<withdrawalsControllerWriteOffExpiredLotsResponse>(getWithdrawalsControllerWriteOffExpiredLotsUrl(clinicId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<withdrawalsControllerWriteOffExpiredLotsResponse>(getWithdrawalsControllerWriteOffExpiredLotsUrl(clinicId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(writeOffExpiredLotsDto)
   }
 );}
 
@@ -1560,7 +1590,7 @@ export const receiptsControllerReverse = async (clinicId: string,
 
 
 export type receiptsControllerPendingRequestsResponse200 = {
-  data: void
+  data: PendingRequestDto[]
   status: 200
 }
 
@@ -1596,7 +1626,7 @@ export const receiptsControllerPendingRequests = async (clinicId: string, option
 
 
 export type incorrectReceiptsControllerListResponse200 = {
-  data: void
+  data: IncorrectReceiptDto[]
   status: 200
 }
 
@@ -1632,7 +1662,7 @@ export const incorrectReceiptsControllerList = async (clinicId: string, options?
 
 
 export type incorrectReceiptsControllerCreateResponse201 = {
-  data: void
+  data: IncorrectReceiptDto
   status: 201
 }
 
@@ -1654,21 +1684,36 @@ export const getIncorrectReceiptsControllerCreateUrl = (clinicId: string,) => {
 /**
  * @summary Registra produto recebido incorretamente (E-35)
  */
-export const incorrectReceiptsControllerCreate = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerCreateResponse> => {
+export const incorrectReceiptsControllerCreate = async (clinicId: string,
+    createIncorrectReceiptDto: CreateIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerCreateResponse> => {
 
-  return customFetch<incorrectReceiptsControllerCreateResponse>(getIncorrectReceiptsControllerCreateUrl(clinicId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerCreateResponse>(getIncorrectReceiptsControllerCreateUrl(clinicId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createIncorrectReceiptDto)
   }
 );}
 
 
 
 export type incorrectReceiptsControllerExchangeResponse201 = {
-  data: void
+  data: IncorrectReceiptDto
   status: 201
 }
 
@@ -1692,21 +1737,36 @@ export const getIncorrectReceiptsControllerExchangeUrl = (clinicId: string,
  * @summary Registra a troca pela empresa (E-36)
  */
 export const incorrectReceiptsControllerExchange = async (clinicId: string,
-    id: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerExchangeResponse> => {
+    id: string,
+    exchangeIncorrectReceiptDto: ExchangeIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerExchangeResponse> => {
 
-  return customFetch<incorrectReceiptsControllerExchangeResponse>(getIncorrectReceiptsControllerExchangeUrl(clinicId,id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerExchangeResponse>(getIncorrectReceiptsControllerExchangeUrl(clinicId,id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(exchangeIncorrectReceiptDto)
   }
 );}
 
 
 
 export type incorrectReceiptsControllerIncorporateResponse201 = {
-  data: void
+  data: IncorporationDto
   status: 201
 }
 
@@ -1727,24 +1787,40 @@ export const getIncorrectReceiptsControllerIncorporateUrl = (clinicId: string,
 }
 
 /**
+ * Só depois do prazo (409 STOCK_DEADLINE_NOT_REACHED antes). Informe o insumo; lote e validade se ele controla lote.
  * @summary Incorpora ao estoque após o prazo (gera entrada) (E-37)
  */
 export const incorrectReceiptsControllerIncorporate = async (clinicId: string,
-    id: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerIncorporateResponse> => {
+    id: string,
+    incorporateIncorrectReceiptDto: IncorporateIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerIncorporateResponse> => {
 
-  return customFetch<incorrectReceiptsControllerIncorporateResponse>(getIncorrectReceiptsControllerIncorporateUrl(clinicId,id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerIncorporateResponse>(getIncorrectReceiptsControllerIncorporateUrl(clinicId,id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(incorporateIncorrectReceiptDto)
   }
 );}
 
 
 
 export type incorrectReceiptsControllerDiscardResponse201 = {
-  data: void
+  data: IncorrectReceiptDto
   status: 201
 }
 
@@ -1765,17 +1841,33 @@ export const getIncorrectReceiptsControllerDiscardUrl = (clinicId: string,
 }
 
 /**
+ * Só depois do prazo (409 antes). Não altera o saldo.
  * @summary Descarta após o prazo, com justificativa (E-38)
  */
 export const incorrectReceiptsControllerDiscard = async (clinicId: string,
-    id: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerDiscardResponse> => {
+    id: string,
+    discardIncorrectReceiptDto: DiscardIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerDiscardResponse> => {
 
-  return customFetch<incorrectReceiptsControllerDiscardResponse>(getIncorrectReceiptsControllerDiscardUrl(clinicId,id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerDiscardResponse>(getIncorrectReceiptsControllerDiscardUrl(clinicId,id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(discardIncorrectReceiptDto)
   }
 );}
 
@@ -1854,7 +1946,7 @@ export const alertsControllerList = async (clinicId: string, options?: Parameter
 
 
 export type dashboardControllerSummaryResponse200 = {
-  data: void
+  data: DashboardDto
   status: 200
 }
 
@@ -1874,6 +1966,7 @@ export const getDashboardControllerSummaryUrl = (clinicId: string,) => {
 }
 
 /**
+ * Indicadores em itens, itens críticos, lotes a vencer e vencidos. As últimas movimentações só vêm para Administrador e Superuser.
  * @summary Painel por perfil (E-16)
  */
 export const dashboardControllerSummary = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerSummaryResponse> => {
@@ -1890,7 +1983,7 @@ export const dashboardControllerSummary = async (clinicId: string, options?: Par
 
 
 export type dashboardControllerWeeklyConsumptionResponse200 = {
-  data: void
+  data: WeeklyConsumptionDto
   status: 200
 }
 
@@ -1901,20 +1994,30 @@ export type dashboardControllerWeeklyConsumptionResponseSuccess = (dashboardCont
 
 export type dashboardControllerWeeklyConsumptionResponse = (dashboardControllerWeeklyConsumptionResponseSuccess)
 
-export const getDashboardControllerWeeklyConsumptionUrl = (clinicId: string,) => {
+export const getDashboardControllerWeeklyConsumptionUrl = (clinicId: string,
+    params: DashboardControllerWeeklyConsumptionParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption`
 }
 
 /**
+ * Só Superuser e Administrador. A última semana é a atual, ainda em andamento.
  * @summary Consumo semanal de um insumo (E-17)
  */
-export const dashboardControllerWeeklyConsumption = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerWeeklyConsumptionResponse> => {
+export const dashboardControllerWeeklyConsumption = async (clinicId: string,
+    params: DashboardControllerWeeklyConsumptionParams, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerWeeklyConsumptionResponse> => {
 
-  return customFetch<dashboardControllerWeeklyConsumptionResponse>(getDashboardControllerWeeklyConsumptionUrl(clinicId),
+  return customFetch<dashboardControllerWeeklyConsumptionResponse>(getDashboardControllerWeeklyConsumptionUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
@@ -2377,7 +2480,7 @@ return customFetch<permissionsControllerReplaceResponse>(getPermissionsControlle
 
 
 export type settingsControllerGetResponse200 = {
-  data: void
+  data: SettingsDto
   status: 200
 }
 
@@ -2413,7 +2516,7 @@ export const settingsControllerGet = async ( options?: Parameters<typeof customF
 
 
 export type settingsControllerUpdateResponse200 = {
-  data: void
+  data: SettingsDto
   status: 200
 }
 
@@ -2435,14 +2538,28 @@ export const getSettingsControllerUpdateUrl = () => {
 /**
  * @summary Altera os parâmetros do módulo (E-54)
  */
-export const settingsControllerUpdate = async ( options?: Parameters<typeof customFetch>[1]): Promise<settingsControllerUpdateResponse> => {
+export const settingsControllerUpdate = async (updateSettingsDto: UpdateSettingsDto, options?: Parameters<typeof customFetch>[1]): Promise<settingsControllerUpdateResponse> => {
 
-  return customFetch<settingsControllerUpdateResponse>(getSettingsControllerUpdateUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<settingsControllerUpdateResponse>(getSettingsControllerUpdateUrl(),
   {
     ...options,
-    method: 'PUT'
-
-
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSettingsDto)
   }
 );}
 

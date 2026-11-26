@@ -1036,6 +1036,7 @@
     },
     "/api/v1/clinics/{clinicId}/expired-lots/write-off": {
       "post": {
+        "description": "Sem `lotIds`, baixa todos os lotes vencidos com saldo da clínica. Com `lotIds`, só os escolhidos (422 se algum não for um lote vencido desta clínica).",
         "operationId": "WithdrawalsController_writeOffExpiredLots",
         "parameters": [
           {
@@ -1045,11 +1046,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Chave de idempotência: reenviar com o mesmo corpo devolve a resposta original.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteOffExpiredLotsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteOffDto"
+                }
+              }
+            }
           }
         },
         "summary": "Baixa lotes vencidos como perda por validade (E-23)",
@@ -1681,7 +1716,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRequestDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Requisições em aberto para importar a data do pedido (E-32)",
@@ -1705,7 +1750,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncorrectReceiptDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Recebimentos incorretos, com prazo restante (E-34)",
@@ -1725,9 +1780,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncorrectReceiptDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncorrectReceiptDto"
+                }
+              }
+            }
           }
         },
         "summary": "Registra produto recebido incorretamente (E-35)",
@@ -1757,9 +1829,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExchangeIncorrectReceiptDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncorrectReceiptDto"
+                }
+              }
+            }
           }
         },
         "summary": "Registra a troca pela empresa (E-36)",
@@ -1770,6 +1859,7 @@
     },
     "/api/v1/clinics/{clinicId}/incorrect-receipts/{id}/incorporation": {
       "post": {
+        "description": "Só depois do prazo (409 STOCK_DEADLINE_NOT_REACHED antes). Informe o insumo; lote e validade se ele controla lote.",
         "operationId": "IncorrectReceiptsController_incorporate",
         "parameters": [
           {
@@ -1787,11 +1877,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Reenviar com o mesmo corpo devolve a resposta original.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncorporateIncorrectReceiptDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncorporationDto"
+                }
+              }
+            }
           }
         },
         "summary": "Incorpora ao estoque após o prazo (gera entrada) (E-37)",
@@ -1802,6 +1926,7 @@
     },
     "/api/v1/clinics/{clinicId}/incorrect-receipts/{id}/disposal": {
       "post": {
+        "description": "Só depois do prazo (409 antes). Não altera o saldo.",
         "operationId": "IncorrectReceiptsController_discard",
         "parameters": [
           {
@@ -1821,9 +1946,26 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscardIncorrectReceiptDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncorrectReceiptDto"
+                }
+              }
+            }
           }
         },
         "summary": "Descarta após o prazo, com justificativa (E-38)",
@@ -1882,6 +2024,7 @@
     },
     "/api/v1/clinics/{clinicId}/dashboard": {
       "get": {
+        "description": "Indicadores em itens, itens críticos, lotes a vencer e vencidos. As últimas movimentações só vêm para Administrador e Superuser.",
         "operationId": "DashboardController_summary",
         "parameters": [
           {
@@ -1895,7 +2038,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDto"
+                }
+              }
+            }
           }
         },
         "summary": "Painel por perfil (E-16)",
@@ -1906,6 +2056,7 @@
     },
     "/api/v1/clinics/{clinicId}/dashboard/weekly-consumption": {
       "get": {
+        "description": "Só Superuser e Administrador. A última semana é a atual, ainda em andamento.",
         "operationId": "DashboardController_weeklyConsumption",
         "parameters": [
           {
@@ -1915,11 +2066,40 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "itemCode",
+            "required": true,
+            "in": "query",
+            "description": "Código do insumo. Obrigatório: unidades diferentes não se somam.",
+            "schema": {
+              "example": "INS-0001",
+              "type": "string"
+            }
+          },
+          {
+            "name": "weeks",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 26,
+              "default": 8,
+              "example": 8,
+              "type": "number"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyConsumptionDto"
+                }
+              }
+            }
           }
         },
         "summary": "Consumo semanal de um insumo (E-17)",
@@ -2221,7 +2401,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Parâmetros de cálculo e de alerta (RF-04) (E-53)",
@@ -2232,9 +2419,27 @@
       "put": {
         "operationId": "SettingsController_update",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Informe pelo menos um parâmetro. Os demais mantêm o valor atual.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Altera os parâmetros do módulo (E-54)",
@@ -3470,6 +3675,97 @@
           "warnings"
         ]
       },
+      "WriteOffExpiredLotsDto": {
+        "type": "object",
+        "properties": {
+          "lotIds": {
+            "maxItems": 100,
+            "description": "Lotes a baixar, um a um. Sem esta lista, baixa todos os lotes vencidos com saldo da clínica (atalho do RF-15).",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "example": "Conferência mensal de validade",
+            "description": "Motivo registrado em cada lançamento. Padrão: \"Perda por validade\"."
+          }
+        }
+      },
+      "WrittenOffLotDto": {
+        "type": "object",
+        "properties": {
+          "lotId": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "AN-551"
+          },
+          "expiresOn": {
+            "type": "string",
+            "example": "2026-11-20",
+            "description": "Validade do lote (data civil)."
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0005"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2.000",
+            "description": "Quantidade baixada (era o saldo do lote), positiva."
+          },
+          "movementId": {
+            "type": "string",
+            "description": "Id da movimentação EXPIRY_LOSS gerada."
+          }
+        },
+        "required": [
+          "lotId",
+          "lotCode",
+          "expiresOn",
+          "itemId",
+          "itemCode",
+          "itemName",
+          "unit",
+          "quantity",
+          "movementId"
+        ]
+      },
+      "WriteOffDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "example": 1,
+            "description": "Quantos lotes foram baixados (0 quando não havia lote vencido)."
+          },
+          "lots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WrittenOffLotDto"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "lots"
+        ]
+      },
       "CreateReturnDto": {
         "type": "object",
         "properties": {
@@ -3847,6 +4143,625 @@
           "lines"
         ]
       },
+      "PendingRequestItemInfoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Luva de procedimento M (cx 100)"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "PendingRequestItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "Id do insumo, como o módulo de Solicitações o conhece (decisão D3)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "20.000",
+            "description": "Quantidade pedida (decimal em string)."
+          },
+          "item": {
+            "nullable": true,
+            "description": "Dados do insumo nesta clínica; nulo quando o id não é de um insumo desta clínica.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendingRequestItemInfoDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "itemId",
+          "quantity",
+          "item"
+        ]
+      },
+      "PendingRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string",
+            "example": "REQ-0001"
+          },
+          "requestedOn": {
+            "type": "string",
+            "example": "2026-10-28",
+            "description": "Data civil do pedido, usada como data do pedido na entrada (RN-03)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingRequestItemDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "requestedOn",
+          "items"
+        ]
+      },
+      "IncorrectReceiptDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "example": "Luva G no lugar da M"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "10.000"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "supplier": {
+            "type": "string",
+            "example": "Distribuidora Alfa"
+          },
+          "notifiedOn": {
+            "type": "string",
+            "example": "2026-10-11",
+            "description": "Data da notificação à empresa; início do prazo."
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "awaiting",
+              "overdue",
+              "exchanged",
+              "incorporated",
+              "discarded"
+            ],
+            "description": "\"overdue\" = aguardando, com o prazo completo: já pode incorporar ou descartar."
+          },
+          "daysSinceNotified": {
+            "type": "number",
+            "example": 14,
+            "description": "Dias desde a notificação (até a resolução, quando já foi resolvido)."
+          },
+          "deadlineDays": {
+            "type": "number",
+            "example": 45,
+            "description": "Prazo configurado (parâmetro incorrectReceiptDeadlineDays)."
+          },
+          "daysRemaining": {
+            "type": "number",
+            "nullable": true,
+            "example": 31,
+            "description": "Dias restantes; 0 se vencido; nulo se já resolvido."
+          },
+          "resolvedOn": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-11-20",
+            "description": "Data da troca, da incorporação ou do descarte."
+          },
+          "justification": {
+            "type": "string",
+            "nullable": true,
+            "description": "Justificativa ou observação da decisão."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "quantity",
+          "unit",
+          "supplier",
+          "notifiedOn",
+          "note",
+          "status",
+          "daysSinceNotified",
+          "deadlineDays",
+          "daysRemaining",
+          "resolvedOn",
+          "justification",
+          "createdAt"
+        ]
+      },
+      "CreateIncorrectReceiptDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "example": "Luva G no lugar da M",
+            "maxLength": 200
+          },
+          "quantity": {
+            "type": "string",
+            "example": "10.000",
+            "description": "Decimal positivo em string, até 3 casas."
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx",
+            "maxLength": 20
+          },
+          "supplier": {
+            "type": "string",
+            "example": "Distribuidora Alfa",
+            "maxLength": 120,
+            "description": "Empresa fornecedora, em texto livre (decisão D5)."
+          },
+          "notifiedOn": {
+            "type": "string",
+            "example": "2026-10-11",
+            "description": "Data em que a empresa foi notificada (AAAA-MM-DD). Não pode ser futura. Inicia o prazo."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Observações."
+          }
+        },
+        "required": [
+          "description",
+          "quantity",
+          "unit",
+          "supplier",
+          "notifiedOn"
+        ]
+      },
+      "ExchangeIncorrectReceiptDto": {
+        "type": "object",
+        "properties": {
+          "exchangedOn": {
+            "type": "string",
+            "example": "2026-11-20",
+            "description": "Data da troca (AAAA-MM-DD). Padrão: hoje."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "IncorporateIncorrectReceiptDto": {
+        "type": "object",
+        "properties": {
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0001",
+            "description": "Código do insumo que recebe o produto."
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-999",
+            "maxLength": 60,
+            "description": "Obrigatório quando o insumo controla lote e validade."
+          },
+          "expiresOn": {
+            "type": "string",
+            "example": "2027-12-01",
+            "description": "Obrigatória quando o insumo controla lote e validade (AAAA-MM-DD)."
+          },
+          "justification": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "itemCode"
+        ]
+      },
+      "IncorporationDto": {
+        "type": "object",
+        "properties": {
+          "receipt": {
+            "$ref": "#/components/schemas/IncorrectReceiptDto"
+          },
+          "movementId": {
+            "type": "string",
+            "description": "Id da movimentação ENTRY gerada."
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "LV-999",
+            "description": "\"-\" para insumo sem controle de lote."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "10.000",
+            "description": "Quantidade que entrou no estoque."
+          }
+        },
+        "required": [
+          "receipt",
+          "movementId",
+          "itemId",
+          "itemCode",
+          "lotId",
+          "lotCode",
+          "quantity"
+        ]
+      },
+      "DiscardIncorrectReceiptDto": {
+        "type": "object",
+        "properties": {
+          "justification": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Obrigatória: se vazia, a API responde 422 STOCK_JUSTIFICATION_REQUIRED."
+          }
+        }
+      },
+      "DashboardSummaryDto": {
+        "type": "object",
+        "properties": {
+          "controlledItems": {
+            "type": "number",
+            "example": 7,
+            "description": "Insumos ativos da clínica. Os indicadores contam itens, não lotes (RF-37)."
+          },
+          "criticalItems": {
+            "type": "number",
+            "example": 2,
+            "description": "Insumos em nível crítico (nota 7 a 10) ou sem estoque utilizável (RN-01)."
+          },
+          "expiringItems": {
+            "type": "number",
+            "example": 3,
+            "description": "Insumos com pelo menos um lote a vencer."
+          },
+          "itemsWithExpiredLots": {
+            "type": "number",
+            "example": 1,
+            "description": "Insumos com pelo menos um lote vencido."
+          }
+        },
+        "required": [
+          "controlledItems",
+          "criticalItems",
+          "expiringItems",
+          "itemsWithExpiredLots"
+        ]
+      },
+      "DashboardCriticalItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0004"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "usableBalance": {
+            "type": "string",
+            "example": "3.000",
+            "description": "Saldo utilizável, sem lotes vencidos (RN-05)."
+          },
+          "criticalLevel": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 9,
+            "description": "Nível crítico de 0 a 10 (RN-01)."
+          },
+          "coverageDays": {
+            "type": "number",
+            "nullable": true,
+            "example": 2.3,
+            "description": "Dias de cobertura; nulo sem consumo."
+          },
+          "situation": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "out-of-stock"
+            ]
+          }
+        },
+        "required": [
+          "itemId",
+          "code",
+          "name",
+          "unit",
+          "usableBalance",
+          "criticalLevel",
+          "coverageDays",
+          "situation"
+        ]
+      },
+      "DashboardLotDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0004"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "AL-702"
+          },
+          "expiresOn": {
+            "type": "string",
+            "example": "2026-12-12",
+            "description": "Data civil (fuso America/Recife)."
+          },
+          "daysToExpiry": {
+            "type": "number",
+            "example": 18,
+            "description": "Dias até a validade; negativo se vencido."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "9.000"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "expiring",
+              "expired"
+            ],
+            "description": "Sempre mostrar com cor e rótulo (RN-08)."
+          }
+        },
+        "required": [
+          "itemId",
+          "itemCode",
+          "itemName",
+          "unit",
+          "lotId",
+          "lotCode",
+          "expiresOn",
+          "daysToExpiry",
+          "quantity",
+          "status"
+        ]
+      },
+      "DashboardMovementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "consumption",
+            "description": "Categoria da movimentação, no formato do contrato (E-39)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "-2.000",
+            "description": "Positivo entra no estoque, negativo sai."
+          },
+          "lotCode": {
+            "type": "string",
+            "nullable": true,
+            "example": "LV-210"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do usuário, quando está no cache do IAM."
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "itemId",
+          "itemCode",
+          "itemName",
+          "kind",
+          "quantity",
+          "lotCode",
+          "userId",
+          "userName",
+          "occurredAt"
+        ]
+      },
+      "DashboardDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/DashboardSummaryDto"
+          },
+          "criticalItems": {
+            "description": "Até 20 itens, do mais crítico ao menos crítico.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardCriticalItemDto"
+            }
+          },
+          "expiringLots": {
+            "description": "Até 20 lotes a vencer, os que vencem primeiro no topo.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardLotDto"
+            }
+          },
+          "expiredLots": {
+            "description": "Até 20 lotes vencidos, os mais atrasados no topo.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardLotDto"
+            }
+          },
+          "recentMovements": {
+            "description": "Últimas 10 movimentações. Só vem para Administrador e Superuser; para o Almoxarife a chave não existe.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardMovementDto"
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "criticalItems",
+          "expiringLots",
+          "expiredLots"
+        ]
+      },
+      "WeeklyConsumptionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "WeeklyConsumptionWeekDto": {
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "example": "2026-11-23",
+            "description": "Segunda-feira da semana (data civil)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "3.500",
+            "description": "Consumo líquido de devoluções; nunca negativo (RN-02)."
+          }
+        },
+        "required": [
+          "weekStart",
+          "quantity"
+        ]
+      },
+      "WeeklyConsumptionDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/WeeklyConsumptionItemDto"
+          },
+          "weeks": {
+            "description": "Da semana mais antiga para a atual. A última semana ainda está em andamento.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyConsumptionWeekDto"
+            }
+          }
+        },
+        "required": [
+          "item",
+          "weeks"
+        ]
+      },
       "MyPermissionsDto": {
         "type": "object",
         "properties": {
@@ -3983,6 +4898,72 @@
         "required": [
           "permissions"
         ]
+      },
+      "SettingsDto": {
+        "type": "object",
+        "properties": {
+          "safetyMarginPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 20
+          },
+          "highWithdrawalMultiplier": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "default": 3
+          },
+          "consumptionDropPercent": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 100,
+            "default": 50
+          },
+          "incorrectReceiptDeadlineDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "default": 45
+          }
+        },
+        "required": [
+          "safetyMarginPercent",
+          "highWithdrawalMultiplier",
+          "consumptionDropPercent",
+          "incorrectReceiptDeadlineDays"
+        ]
+      },
+      "UpdateSettingsDto": {
+        "type": "object",
+        "properties": {
+          "safetyMarginPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 20
+          },
+          "highWithdrawalMultiplier": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "default": 3
+          },
+          "consumptionDropPercent": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 100,
+            "default": 50
+          },
+          "incorrectReceiptDeadlineDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "default": 45
+          }
+        }
       }
     }
   }
