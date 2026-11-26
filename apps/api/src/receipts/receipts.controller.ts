@@ -6,8 +6,11 @@ import { requireAuth } from '../access/require-auth';
 import { Idempotent } from '../common/idempotency/idempotency';
 import { CreateReceiptDto } from './dto/create-receipt.dto';
 import { PendingRequestDto } from './dto/pending-request.dto';
+import { ListReceiptsQueryDto } from './dto/list-receipts-query.dto';
+import { ReceiptNoteDetailDto, ReceiptNotePageDto } from './dto/receipt-note-response.dto';
 import { ReceiptDto } from './dto/receipt-response.dto';
 import { PendingRequestsService } from './pending-requests.service';
+import { ReceiptNotesService } from './receipt-notes.service';
 import { ReceiptsService } from './receipts.service';
 
 @ApiTags('receipts')
@@ -16,6 +19,7 @@ export class ReceiptsController {
   constructor(
     private readonly service: ReceiptsService,
     private readonly pending: PendingRequestsService,
+    private readonly notes: ReceiptNotesService,
   ) {}
 
   @Post('clinics/:clinicId/receipts')
@@ -36,15 +40,17 @@ export class ReceiptsController {
   @Get('clinics/:clinicId/receipts')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Lista notas de recebimento (E-28)' })
-  list(@Param('clinicId') clinicId: string, @Query() query: Record<string, string>) {
-    return this.service.list(clinicId, query);
+  @ApiOkResponse({ type: ReceiptNotePageDto })
+  list(@Param('clinicId', new ParseUUIDPipe()) clinicId: string, @Query() query: ListReceiptsQueryDto) {
+    return this.notes.list(clinicId, query);
   }
 
   @Get('clinics/:clinicId/receipts/:receiptId')
   @RequirePermissions('stock:read')
   @ApiOperation({ summary: 'Detalhe da nota, linhas e divergências (E-29)' })
-  detail(@Param('clinicId') clinicId: string, @Param('receiptId') receiptId: string) {
-    return this.service.detail(clinicId, receiptId);
+  @ApiOkResponse({ type: ReceiptNoteDetailDto })
+  detail(@Param('clinicId', new ParseUUIDPipe()) clinicId: string, @Param('receiptId', new ParseUUIDPipe()) receiptId: string) {
+    return this.notes.detail(clinicId, receiptId);
   }
 
   @Get('clinics/:clinicId/receipts/:receiptId/document')

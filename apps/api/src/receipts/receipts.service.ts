@@ -20,7 +20,7 @@ import type { ReceiptDto, ReceiptLineResultDto } from './dto/receipt-response.dt
 import { validateReceiptHeader, validateReceiptLine, type FieldErrors } from './receipt-rules';
 
 const toDbOrigin = (origin: ReceiptOrigin): DbReceiptOrigin => origin.toUpperCase().replace(/-/g, '_') as DbReceiptOrigin;
-const fromDbOrigin = (origin: DbReceiptOrigin): ReceiptOrigin => origin.toLowerCase().replace(/_/g, '-') as ReceiptOrigin;
+export const fromDbOrigin = (origin: DbReceiptOrigin): ReceiptOrigin => origin.toLowerCase().replace(/_/g, '-') as ReceiptOrigin;
 const civilDate = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
 const invalid = (code: string, detail: string, errors: FieldErrors) => new UnprocessableEntityException({ code, detail, errors });
