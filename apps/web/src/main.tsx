@@ -5,6 +5,8 @@ import { App } from './App';
 import { BudgetPreviewContext } from './features/budget/preview-data';
 import { demoBudget } from './features/budget/demo-budget';
 import { createDemoInbox } from './features/notifications/demo-inbox';
+import { createReportsDemo } from './features/reports/demo-reports';
+import { ReportsPreviewContext } from './features/reports/preview-data';
 
 /** Quadro de teste da execução isolada; não é carregado pelo shell. */
 function ExecucaoIsolada() {
@@ -13,6 +15,10 @@ function ExecucaoIsolada() {
     return demo ? createDemoInbox() : undefined;
   });
   const [showBudgetPreview] = useState(() => new URLSearchParams(window.location.search).get('demo-orcamento') === '1');
+  const [reportsPreview] = useState(() => {
+    const demo = new URLSearchParams(window.location.search).get('demo-relatorios') === '1';
+    return demo ? createReportsDemo() : null;
+  });
   const [temaEscuro, setTemaEscuro] = useState(() => document.documentElement.classList.contains('dark'));
 
   const alternarTema = () => {
@@ -36,7 +42,9 @@ function ExecucaoIsolada() {
         </button>
       </div>
       <BudgetPreviewContext.Provider value={showBudgetPreview ? demoBudget : null}>
-        <App standalone notificationInbox={notificationInbox} />
+        <ReportsPreviewContext.Provider value={reportsPreview}>
+          <App standalone notificationInbox={notificationInbox} />
+        </ReportsPreviewContext.Provider>
       </BudgetPreviewContext.Provider>
     </div>
   );

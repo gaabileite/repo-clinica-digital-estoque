@@ -1,15 +1,21 @@
+import { useContext } from 'react';
+import { ModuleSessionContext } from '@/app/ModuleProviders';
 import { EmptyState, PageHeader } from '@/components/ui';
+import { ReportsPreview } from './ReportsPreview';
+import { ReportsPreviewContext } from './preview-data';
 
-/**
- * Relatórios (RF-38 a RF-41). Perfis: superuser, admin.
- * Consumo, perdas, curva ABC e exportação em PDF e Excel.
- * Referência visual: prototype/ (protótipo validado). Regras: docs/requirements.md.
- */
 export function ReportsPage() {
+  const demo = useContext(ReportsPreviewContext);
+  const session = useContext(ModuleSessionContext);
+  const profile = session?.profile;
+  const canPreview = (profile === 'admin' || profile === 'superuser') && session?.permissions.includes('stock:reports');
+
   return (
     <>
       <PageHeader title="Relatórios" />
-      <EmptyState title="Em construção" description="Consumo, perdas, curva ABC e exportação em PDF e Excel." />
+      {demo && canPreview ? <ReportsPreview data={demo} network={profile === 'superuser'} /> : (
+        <EmptyState title="Relatórios indisponíveis" description="Consumo, perdas e curva ABC dependem do serviço de relatórios." />
+      )}
     </>
   );
 }
