@@ -41,7 +41,7 @@ test('mostra avisos antes da saída e exige motivo para desfazer', async ({ page
   await page.route('**/clinics/clinic-test/withdrawals', (route) => route.fulfill({ status: 201, json: {
     movements: [{ id: 'movement-test', lot, quantity: '-1' }], warnings: [],
   } }));
-  await page.route('**/movements/movement-test/reverse', (route) => {
+  await page.route('**/movements/movement-test/reversals', (route) => {
     expect(route.request().headers()['idempotency-key']).toBeTruthy();
     expect(route.request().postDataJSON()).toEqual({ reason: 'Registro incorreto' });
     return route.fulfill({ status: 201, json: {} });
