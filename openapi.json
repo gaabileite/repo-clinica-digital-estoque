@@ -1770,8 +1770,26 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReverseReceiptDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -4446,6 +4464,17 @@
           "proofFileId",
           "reversalReason",
           "lines"
+        ]
+      },
+      "ReverseReceiptDto": {
+        "type": "object",
+        "properties": {
+          "justification": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "justification"
         ]
       },
       "PendingRequestItemInfoDto": {
