@@ -1681,7 +1681,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRequestDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Requisições em aberto para importar a data do pedido (E-32)",
@@ -3845,6 +3855,91 @@
           "userId",
           "createdAt",
           "lines"
+        ]
+      },
+      "PendingRequestItemInfoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Luva de procedimento M (cx 100)"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "PendingRequestItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "Id do insumo, como o módulo de Solicitações o conhece (decisão D3)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "20.000",
+            "description": "Quantidade pedida (decimal em string)."
+          },
+          "item": {
+            "nullable": true,
+            "description": "Dados do insumo nesta clínica; nulo quando o id não é de um insumo desta clínica.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendingRequestItemInfoDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "itemId",
+          "quantity",
+          "item"
+        ]
+      },
+      "PendingRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string",
+            "example": "REQ-0001"
+          },
+          "requestedOn": {
+            "type": "string",
+            "example": "2026-10-28",
+            "description": "Data civil do pedido, usada como data do pedido na entrada (RN-03)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingRequestItemDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "requestedOn",
+          "items"
         ]
       },
       "MyPermissionsDto": {

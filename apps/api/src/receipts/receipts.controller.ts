@@ -1,17 +1,22 @@
 import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
-import { ApiCreatedResponse, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
 import type { AuthContext } from '../access/auth-context';
 import { requireAuth } from '../access/require-auth';
 import { Idempotent } from '../common/idempotency/idempotency';
 import { CreateReceiptDto } from './dto/create-receipt.dto';
+import { PendingRequestDto } from './dto/pending-request.dto';
 import { ReceiptDto } from './dto/receipt-response.dto';
+import { PendingRequestsService } from './pending-requests.service';
 import { ReceiptsService } from './receipts.service';
 
 @ApiTags('receipts')
 @Controller()
 export class ReceiptsController {
-  constructor(private readonly service: ReceiptsService) {}
+  constructor(
+    private readonly service: ReceiptsService,
+    private readonly pending: PendingRequestsService,
+  ) {}
 
   @Post('clinics/:clinicId/receipts')
   @RequirePermissions('stock:receive')
@@ -60,7 +65,8 @@ export class ReceiptsController {
   @Get('clinics/:clinicId/pending-requests')
   @RequirePermissions('stock:receive')
   @ApiOperation({ summary: 'Requisições em aberto para importar a data do pedido (E-32)' })
-  pendingRequests(@Param('clinicId') clinicId: string) {
-    return this.service.pendingRequests(clinicId);
+  @ApiOkResponse({ type: PendingRequestDto, isArray: true })
+  pendingRequests(@Param('clinicId', new ParseUUIDPipe()) clinicId: string) {
+    return this.pending.list(clinicId);
   }
 }

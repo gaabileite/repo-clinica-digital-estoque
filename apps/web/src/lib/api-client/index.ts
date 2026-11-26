@@ -25,6 +25,7 @@ import type {
   MovementPageDto,
   MovementsControllerListParams,
   MyPermissionsDto,
+  PendingRequestDto,
   ProblemDetailsDto,
   ReceiptDto,
   ReplaceRolePermissionsDto,
@@ -1560,7 +1561,7 @@ export const receiptsControllerReverse = async (clinicId: string,
 
 
 export type receiptsControllerPendingRequestsResponse200 = {
-  data: void
+  data: PendingRequestDto[]
   status: 200
 }
 
