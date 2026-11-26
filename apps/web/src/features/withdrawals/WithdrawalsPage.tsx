@@ -34,7 +34,7 @@ function WithdrawalForm({ clinicId }: { clinicId: string }) {
   const availability = useAvailability(clinicId, item.data?.id, quantity, lotId);
   const mutation = useWithdrawal(clinicId);
   const needsRecipient = kind === 'loan' || kind === 'donation';
-  const needsReason = kind !== 'consumption';
+  const needsReason = kind === 'damage-discard';
   const preview = availability.data;
   const usableLots = lots.data?.filter((lot) => lot.usable) ?? [];
   const canSubmit = Boolean(item.data?.active && validQuantity(quantity) && preview?.available &&
