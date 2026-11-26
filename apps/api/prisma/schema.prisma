@@ -177,6 +177,10 @@ model Movement {
   returnedBy     String?
   userId         String
   origin         String?
+  /// Nota que originou esta entrada. Os estornos referenciam a entrada via reversalOfId.
+  receiptId      String?      @db.Uuid
+  /// Número de lançamentos no lote imediatamente após esta entrada.
+  lotMovementCount Int?
   reversalOfId   String?      @unique @db.Uuid
   idempotencyKey String?
   occurredAt     DateTime     @default(now())
@@ -190,6 +194,7 @@ model Movement {
   @@index([clinicId, occurredAt])
   @@index([clinicId, itemId, occurredAt])
   @@index([lotId])
+  @@index([receiptId])
   @@unique([clinicId, idempotencyKey])
   @@map("movements")
 }
