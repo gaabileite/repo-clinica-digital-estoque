@@ -15,10 +15,16 @@ import type {
   ConsumptionProfileDto,
   CreateAdjustmentDto,
   CreateCategoryDto,
+  CreateIncorrectReceiptDto,
   CreateItemDto,
   CreateReceiptDto,
   CreateReturnDto,
   CreateWithdrawalDto,
+  DiscardIncorrectReceiptDto,
+  ExchangeIncorrectReceiptDto,
+  IncorporateIncorrectReceiptDto,
+  IncorporationDto,
+  IncorrectReceiptDto,
   ItemsControllerListParams,
   LotListDto,
   MovementDto,
@@ -1596,7 +1602,7 @@ export const receiptsControllerPendingRequests = async (clinicId: string, option
 
 
 export type incorrectReceiptsControllerListResponse200 = {
-  data: void
+  data: IncorrectReceiptDto[]
   status: 200
 }
 
@@ -1632,7 +1638,7 @@ export const incorrectReceiptsControllerList = async (clinicId: string, options?
 
 
 export type incorrectReceiptsControllerCreateResponse201 = {
-  data: void
+  data: IncorrectReceiptDto
   status: 201
 }
 
@@ -1654,21 +1660,36 @@ export const getIncorrectReceiptsControllerCreateUrl = (clinicId: string,) => {
 /**
  * @summary Registra produto recebido incorretamente (E-35)
  */
-export const incorrectReceiptsControllerCreate = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerCreateResponse> => {
+export const incorrectReceiptsControllerCreate = async (clinicId: string,
+    createIncorrectReceiptDto: CreateIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerCreateResponse> => {
 
-  return customFetch<incorrectReceiptsControllerCreateResponse>(getIncorrectReceiptsControllerCreateUrl(clinicId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerCreateResponse>(getIncorrectReceiptsControllerCreateUrl(clinicId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createIncorrectReceiptDto)
   }
 );}
 
 
 
 export type incorrectReceiptsControllerExchangeResponse201 = {
-  data: void
+  data: IncorrectReceiptDto
   status: 201
 }
 
@@ -1692,21 +1713,36 @@ export const getIncorrectReceiptsControllerExchangeUrl = (clinicId: string,
  * @summary Registra a troca pela empresa (E-36)
  */
 export const incorrectReceiptsControllerExchange = async (clinicId: string,
-    id: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerExchangeResponse> => {
+    id: string,
+    exchangeIncorrectReceiptDto: ExchangeIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerExchangeResponse> => {
 
-  return customFetch<incorrectReceiptsControllerExchangeResponse>(getIncorrectReceiptsControllerExchangeUrl(clinicId,id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerExchangeResponse>(getIncorrectReceiptsControllerExchangeUrl(clinicId,id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(exchangeIncorrectReceiptDto)
   }
 );}
 
 
 
 export type incorrectReceiptsControllerIncorporateResponse201 = {
-  data: void
+  data: IncorporationDto
   status: 201
 }
 
@@ -1727,24 +1763,40 @@ export const getIncorrectReceiptsControllerIncorporateUrl = (clinicId: string,
 }
 
 /**
+ * Só depois do prazo (409 STOCK_DEADLINE_NOT_REACHED antes). Informe o insumo; lote e validade se ele controla lote.
  * @summary Incorpora ao estoque após o prazo (gera entrada) (E-37)
  */
 export const incorrectReceiptsControllerIncorporate = async (clinicId: string,
-    id: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerIncorporateResponse> => {
+    id: string,
+    incorporateIncorrectReceiptDto: IncorporateIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerIncorporateResponse> => {
 
-  return customFetch<incorrectReceiptsControllerIncorporateResponse>(getIncorrectReceiptsControllerIncorporateUrl(clinicId,id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerIncorporateResponse>(getIncorrectReceiptsControllerIncorporateUrl(clinicId,id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(incorporateIncorrectReceiptDto)
   }
 );}
 
 
 
 export type incorrectReceiptsControllerDiscardResponse201 = {
-  data: void
+  data: IncorrectReceiptDto
   status: 201
 }
 
@@ -1765,17 +1817,33 @@ export const getIncorrectReceiptsControllerDiscardUrl = (clinicId: string,
 }
 
 /**
+ * Só depois do prazo (409 antes). Não altera o saldo.
  * @summary Descarta após o prazo, com justificativa (E-38)
  */
 export const incorrectReceiptsControllerDiscard = async (clinicId: string,
-    id: string, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerDiscardResponse> => {
+    id: string,
+    discardIncorrectReceiptDto: DiscardIncorrectReceiptDto, options?: Parameters<typeof customFetch>[1]): Promise<incorrectReceiptsControllerDiscardResponse> => {
 
-  return customFetch<incorrectReceiptsControllerDiscardResponse>(getIncorrectReceiptsControllerDiscardUrl(clinicId,id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<incorrectReceiptsControllerDiscardResponse>(getIncorrectReceiptsControllerDiscardUrl(clinicId,id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(discardIncorrectReceiptDto)
   }
 );}
 
