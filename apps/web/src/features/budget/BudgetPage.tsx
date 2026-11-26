@@ -1,15 +1,20 @@
+import { useContext } from 'react';
+import { ModuleSessionContext } from '@/app/ModuleProviders';
 import { EmptyState, PageHeader } from '@/components/ui';
+import { BudgetPreview } from './BudgetPreview';
+import { BudgetPreviewContext } from './preview-data';
 
-/**
- * Visão orçamentária (RF-42 a RF-45). Perfis: budget-controller, superuser (com a chave ligada).
- * Valor em estoque, perdas e consumo em reais.
- * Referência visual: prototype/ (protótipo validado). Regras: docs/requirements.md.
- */
 export function BudgetPage() {
+  const preview = useContext(BudgetPreviewContext);
+  const session = useContext(ModuleSessionContext);
+  const showPreview = session?.profile === 'budget-controller' && session.permissions.includes('stock:budget:read') && preview;
+
   return (
     <>
       <PageHeader title="Visão orçamentária" />
-      <EmptyState title="Em construção" description="Valor em estoque, perdas e consumo em reais." />
+      {showPreview ? <BudgetPreview data={showPreview} /> : (
+        <EmptyState title="Dados orçamentários indisponíveis" description="A consulta de valores depende do serviço de orçamento." />
+      )}
     </>
   );
 }

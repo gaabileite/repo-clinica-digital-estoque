@@ -1,11 +1,12 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { REQUIRED_PERMISSIONS_KEY } from './access.decorators';
+import { REQUIRED_PERMISSIONS_KEY, REQUIRED_PROFILE_KEY } from './access.decorators';
 import { PermissionMatrixService } from './permission-matrix.service';
 import type { Permission } from './permissions';
+import type { Profile } from './profile';
 
-/** Confere o escopo exigido pela rota e o vínculo do usuário com a clínica do recurso (RN-13, RNF-05). */
+/** Confere o perfil, os escopos e o vínculo com a clínica do recurso (RN-13, RNF-05). */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(
@@ -14,15 +15,17 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.getAllAndOverride<Permission[] | undefined>(REQUIRED_PERMISSIONS_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (!required || required.length === 0) return true;
+    const targets = [context.getHandler(), context.getClass()];
+    const required = this.reflector.getAllAndOverride<Permission[]>(REQUIRED_PERMISSIONS_KEY, targets) ?? [];
+    const profile = this.reflector.getAllAndOverride<Profile>(REQUIRED_PROFILE_KEY, targets);
+    if (!required.length && !profile) return true;
 
     const request = context.switchToHttp().getRequest<Request>();
     const auth = request.auth;
     if (!auth) throw new ForbiddenException({ code: 'FORBIDDEN', detail: 'Acesso negado.' });
+    if (profile && auth.profile !== profile) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', detail: 'Seu perfil não tem permissão para esta operação.' });
+    }
 
     // The matrix is read from memory (and follows the saved changes), not from the constant in permissions.ts.
     const granted = this.matrix.permissionsOf(auth.profile);

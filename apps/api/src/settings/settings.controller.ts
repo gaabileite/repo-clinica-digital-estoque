@@ -3,15 +3,18 @@ import { Body, Controller, Get, Put } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
 import { SettingsDto, UpdateSettingsDto } from './settings.dto';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentAuth, RequirePermissions, RequireProfile } from '../access/access.decorators';
 import { SettingsService } from './settings.service';
 
 @ApiTags('settings')
 @Controller()
+@RequireProfile('superuser')
+@RequirePermissions('stock:admin')
 export class SettingsController {
   constructor(private readonly service: SettingsService) {}
 
   @Get('settings')
-  @RequirePermissions('stock:admin')
   @ApiOperation({ summary: 'Parâmetros de cálculo e de alerta (RF-04) (E-53)' })
   @ApiOkResponse({ type: SettingsDto })
   get(): Promise<SettingsDto> {
@@ -19,7 +22,6 @@ export class SettingsController {
   }
 
   @Put('settings')
-  @RequirePermissions('stock:admin')
   @ApiOperation({ summary: 'Altera os parâmetros do módulo (E-54)' })
   @ApiBody({ type: UpdateSettingsDto, description: 'Informe pelo menos um parâmetro. Os demais mantêm o valor atual.' })
   @ApiOkResponse({ type: SettingsDto })
