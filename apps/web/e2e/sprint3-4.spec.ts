@@ -26,6 +26,7 @@ test('entrada exige lote e validade e informa nota emitida', async ({ page }) =>
     return route.fulfill({ status: 201, json: { number: 'NR-0001' } });
   });
   await page.goto('/receipts');
+  await page.getByRole('tab', { name: 'Nova entrada' }).click();
   const form = page.getByRole('region', { name: 'Nova entrada' });
   await form.getByLabel('Código do insumo').fill(item.code);
   await form.getByLabel('Quantidade recebida').fill('2');
@@ -68,4 +69,16 @@ test('painel de almoxarife não mostra movimentações nem consumo semanal', asy
   await expect(page.getByRole('link', { name: /Itens a vencer/ })).toHaveAttribute('href', '/stock?clinic=clinic-test&expiry=expiring');
   await expect(page.getByRole('heading', { name: 'Últimas movimentações' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Consumo semanal' })).toHaveCount(0);
+});
+
+test('Entradas separa os filtros das notas do formulário de recebimento', async ({ page }) => {
+  await page.route('**/clinics/clinic-test/receipts?*', (route) => route.fulfill({ json: { data: [], page: { total: 0, nextCursor: null } } }));
+  await page.goto('/receipts');
+  await expect(page.getByRole('tab', { name: 'Notas de recebimento' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('combobox', { name: 'Origem', exact: true })).toHaveCount(1);
+  await page.getByRole('tab', { name: 'Nova entrada' }).click();
+  await expect(page.getByRole('region', { name: 'Nova entrada' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Notas de recebimento' })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Notas de recebimento' }).click();
+  await expect(page.getByRole('region', { name: 'Nova entrada' })).toHaveCount(0);
 });

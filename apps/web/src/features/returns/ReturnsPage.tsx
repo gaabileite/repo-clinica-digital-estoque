@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { ErrorState, LoadingState, PageHeader } from '@/components/ui';
 import {
   inputClass, submitClass, OperationClinic, OperationItemStatus, operationError,
@@ -16,6 +16,7 @@ export function ReturnsPage() {
 }
 
 function ReturnForm({ clinicId }: { clinicId: string }) {
+  const fieldId = useId();
   const [code, setCode] = useState('');
   const [quantity, setQuantity] = useState('');
   const [lotId, setLotId] = useState('');
@@ -56,12 +57,13 @@ function ReturnForm({ clinicId }: { clinicId: string }) {
           <input className={inputClass} inputMode="decimal" required value={quantity} onChange={(event) => setQuantity(event.target.value.replace(',', '.'))} />
         </label>
         {quantity && !validQuantity(quantity) && <p role="alert">Informe quantidade positiva com até três casas decimais.</p>}
-        <label className="block text-sm font-medium">Destino
-          <select className={inputClass} value={newLot ? 'new' : 'existing'} onChange={(event) => setNewLot(event.target.value === 'new')}>
+        <div className="space-y-1">
+          <label htmlFor={fieldId + "-destination"} className="block text-sm font-medium">Destino da devolução</label>
+          <select id={fieldId + "-destination"} className={inputClass} value={newLot ? 'new' : 'existing'} onChange={(event) => setNewLot(event.target.value === 'new')}>
             <option value="existing">Lote original</option>
             <option value="new">Novo lote</option>
           </select>
-        </label>
+        </div>
         {newLot ? (
           <>
             <label className="block text-sm font-medium">Código do novo lote<input className={inputClass} required value={lotCode} onChange={(event) => setLotCode(event.target.value)} /></label>
@@ -71,12 +73,13 @@ function ReturnForm({ clinicId }: { clinicId: string }) {
           <>
             {lots.isFetching && <LoadingState message="Consultando lotes..." />}
             {lots.isError && <ErrorState title="Lotes indisponíveis" message={operationError(lots.error)} onRetry={() => void lots.refetch()} />}
-            <label className="block text-sm font-medium">Lote original
-              <select className={inputClass} required value={lotId} onChange={(event) => setLotId(event.target.value)}>
+            <div className="space-y-1">
+              <label htmlFor={fieldId + "-lot"} className="block text-sm font-medium">Lote original</label>
+              <select id={fieldId + "-lot"} className={inputClass} required value={lotId} onChange={(event) => setLotId(event.target.value)}>
                 <option value="">Selecione o lote</option>
                 {lots.data?.map((lot) => <option key={lot.id} value={lot.id}>{lot.lotCode} — {lot.expiresOn ?? 'sem validade'}</option>)}
               </select>
-            </label>
+            </div>
             {lots.isSuccess && !lots.data.length && <p role="status">Não há lotes disponíveis na consulta. Verifique o lote original antes de registrar.</p>}
           </>
         )}

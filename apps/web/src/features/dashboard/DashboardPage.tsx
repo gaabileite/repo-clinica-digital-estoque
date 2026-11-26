@@ -3,7 +3,8 @@ import { ModuleSessionContext } from '@/app/ModuleProviders';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/components/ui';
 import { catalogInputClass, catalogButtonClass } from '@/features/registrations/CatalogDialog';
 import { operationError } from '@/features/stock/operation';
-import { useDashboard, useWeeklyConsumption, type DashboardData } from './api';
+import { useDashboard, useWeeklyConsumption } from './api';
+import type { DashboardLotDto } from '@/lib/api-client/models';
 
 const qty = (value: string) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(Number(value));
 const civil = (value: string) => value.split('-').reverse().join('/');
@@ -91,7 +92,7 @@ function DashboardContent({ clinic, canReport, showMovements }: { clinic: string
   );
 }
 
-function LotList({ clinic, title, lots }: { clinic: string; title: string; lots: DashboardData['expiringLots'] }) {
+function LotList({ clinic, title, lots }: { clinic: string; title: string; lots: DashboardLotDto[] }) {
   return <section className="rounded-xl border border-line bg-surface p-4">
     <h2 className="mb-3 font-bold text-heading">{title}</h2>
     {lots.length ? <ul className="divide-y divide-line">{lots.map((lot) => <li key={lot.lotId} className="space-y-1 py-3 text-sm">

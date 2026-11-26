@@ -42,7 +42,7 @@ test('devolução para lote original envia os dados obrigatórios', async ({ pag
   await page.goto('/returns');
   await page.getByLabel('Código do insumo').fill(item.code);
   await page.getByLabel('Quantidade').fill('1');
-  await page.getByLabel('Lote original', { exact: true }).selectOption(lot.id);
+  await page.getByRole('combobox', { name: 'Lote original', exact: true }).selectOption(lot.id);
   await page.getByLabel('Quem retirou e devolveu').fill('Ana');
   await page.getByRole('button', { name: 'Confirmar devolução' }).click();
   await expect(page.getByText('Devolução registrada com sucesso.')).toBeVisible();
