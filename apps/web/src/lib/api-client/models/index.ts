@@ -77,3 +77,6 @@ export * from './withdrawalItemDto';
 export * from './withdrawalWarningDto';
 export * from './withdrawalWarningDtoCode';
 export * from './withdrawalWarningDtoDetails';
+export * from './writeOffDto';
+export * from './writeOffExpiredLotsDto';
+export * from './writtenOffLotDto';

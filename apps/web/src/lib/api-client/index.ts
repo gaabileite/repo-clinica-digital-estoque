@@ -34,7 +34,9 @@ import type {
   StockControllerBalancesParams,
   UpdateCategoryDto,
   UpdateItemDto,
-  WithdrawalDto
+  WithdrawalDto,
+  WriteOffDto,
+  WriteOffExpiredLotsDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -937,7 +939,7 @@ return customFetch<withdrawalsControllerCreateResponse>(getWithdrawalsController
 
 
 export type withdrawalsControllerWriteOffExpiredLotsResponse201 = {
-  data: void
+  data: WriteOffDto
   status: 201
 }
 
@@ -957,16 +959,32 @@ export const getWithdrawalsControllerWriteOffExpiredLotsUrl = (clinicId: string,
 }
 
 /**
+ * Sem `lotIds`, baixa todos os lotes vencidos com saldo da clínica. Com `lotIds`, só os escolhidos (422 se algum não for um lote vencido desta clínica).
  * @summary Baixa lotes vencidos como perda por validade (E-23)
  */
-export const withdrawalsControllerWriteOffExpiredLots = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<withdrawalsControllerWriteOffExpiredLotsResponse> => {
+export const withdrawalsControllerWriteOffExpiredLots = async (clinicId: string,
+    writeOffExpiredLotsDto: WriteOffExpiredLotsDto, options?: Parameters<typeof customFetch>[1]): Promise<withdrawalsControllerWriteOffExpiredLotsResponse> => {
 
-  return customFetch<withdrawalsControllerWriteOffExpiredLotsResponse>(getWithdrawalsControllerWriteOffExpiredLotsUrl(clinicId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<withdrawalsControllerWriteOffExpiredLotsResponse>(getWithdrawalsControllerWriteOffExpiredLotsUrl(clinicId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(writeOffExpiredLotsDto)
   }
 );}
 
