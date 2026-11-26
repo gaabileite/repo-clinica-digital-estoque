@@ -2,6 +2,7 @@ import { useContext, useId, useState } from 'react';
 import { ModuleSessionContext } from '@/app/ModuleProviders';
 import { EmptyState, PageHeader } from '@/components/ui';
 import { catalogInputClass } from '@/features/registrations/CatalogDialog';
+import { NewReceipt } from './NewReceipt';
 import { ReceiptNotes } from './ReceiptNotes';
 
 export function ReceiptsPage() {
@@ -30,7 +31,10 @@ export function ReceiptsPage() {
         </div>
       )}
       {clinic && canRead ? (
-        <ReceiptNotes key={clinic} clinicId={clinic} canReverse={canReverse} />
+        <div key={clinic} className="space-y-6">
+          {canReverse && <NewReceipt clinicId={clinic} />}
+          <ReceiptNotes clinicId={clinic} canReverse={canReverse} />
+        </div>
       ) : (
         <EmptyState
           title="Notas de recebimento"
