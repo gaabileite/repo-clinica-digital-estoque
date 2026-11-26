@@ -2,6 +2,8 @@ import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/standalone.css';
 import { App } from './App';
+import { BudgetPreviewContext } from './features/budget/preview-data';
+import { demoBudget } from './features/budget/demo-budget';
 import { createDemoInbox } from './features/notifications/demo-inbox';
 
 /** Quadro de teste da execução isolada; não é carregado pelo shell. */
@@ -10,6 +12,7 @@ function ExecucaoIsolada() {
     const demo = new URLSearchParams(window.location.search).get('demo-notificacoes') === '1';
     return demo ? createDemoInbox() : undefined;
   });
+  const [showBudgetPreview] = useState(() => new URLSearchParams(window.location.search).get('demo-orcamento') === '1');
   const [temaEscuro, setTemaEscuro] = useState(() => document.documentElement.classList.contains('dark'));
 
   const alternarTema = () => {
@@ -32,7 +35,9 @@ function ExecucaoIsolada() {
           Tema: {temaEscuro ? 'escuro' : 'claro'}
         </button>
       </div>
-      <App standalone notificationInbox={notificationInbox} />
+      <BudgetPreviewContext.Provider value={showBudgetPreview ? demoBudget : null}>
+        <App standalone notificationInbox={notificationInbox} />
+      </BudgetPreviewContext.Provider>
     </div>
   );
 }
