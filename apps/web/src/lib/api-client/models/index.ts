@@ -75,6 +75,7 @@ export * from './receiptLineResultDto';
 export * from './replaceRolePermissionsDto';
 export * from './replaceRolePermissionsDtoPermissionsItem';
 export * from './reverseMovementDto';
+export * from './reverseReceiptDto';
 export * from './rolePermissionsDto';
 export * from './rolePermissionsDtoPermissionsItem';
 export * from './rolePermissionsDtoRole';
