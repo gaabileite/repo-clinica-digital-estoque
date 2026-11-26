@@ -47,3 +47,39 @@ test('devolução para lote original envia os dados obrigatórios', async ({ pag
   await page.getByRole('button', { name: 'Confirmar devolução' }).click();
   await expect(page.getByText('Devolução registrada com sucesso.')).toBeVisible();
 });
+
+for (const [kind, label] of [['loan', 'empréstimo'], ['donation', 'doação']] as const) {
+  test(`${label} exige só o destinatário, sem motivo`, async ({ page }) => {
+    let body: Record<string, unknown> | undefined;
+    await page.route('**/clinics/clinic-test/withdrawals', (route) => {
+      body = route.request().postDataJSON();
+      return route.fulfill({ status: 201, json: {} });
+    });
+    await page.goto('/withdrawals');
+    await page.getByLabel('Código do insumo').fill(item.code);
+    await page.getByLabel('Quantidade').fill('1');
+    await page.getByLabel('Tipo de saída').selectOption(kind);
+    await expect(page.getByText(/Lote sugerido/)).toBeVisible();
+    await expect(page.getByLabel('Motivo')).toHaveCount(0);
+    const confirm = page.getByRole('button', { name: 'Confirmar saída' });
+    await expect(confirm).toBeDisabled();
+    await page.getByLabel('Destinatário').fill('Dr. X');
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+    await expect(page.getByText('Saída registrada com sucesso.')).toBeVisible();
+    expect(body).toMatchObject({ code: item.code, quantity: '1', kind, recipient: 'Dr. X' });
+    expect(body).not.toHaveProperty('reason');
+  });
+}
+
+test('descarte por avaria continua exigindo o motivo', async ({ page }) => {
+  await page.goto('/withdrawals');
+  await page.getByLabel('Código do insumo').fill(item.code);
+  await page.getByLabel('Quantidade').fill('1');
+  await page.getByLabel('Tipo de saída').selectOption('damage-discard');
+  await expect(page.getByText(/Lote sugerido/)).toBeVisible();
+  const confirm = page.getByRole('button', { name: 'Confirmar saída' });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel('Motivo').fill('Embalagem rasgada');
+  await expect(confirm).toBeEnabled();
+});

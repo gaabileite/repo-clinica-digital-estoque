@@ -252,11 +252,11 @@ export class ReceiptsService {
         if (!entry.lotId || entry.lotMovementCount === null) throw moved();
         checkpoints.set(entry.lotId, Math.max(checkpoints.get(entry.lotId) ?? 0, entry.lotMovementCount));
       }
-      // Mesma ordem em toda a transação. Retiradas e ajustes concorrentes também travam os lotes.
-      const ids = [...checkpoints.keys()].sort();
+      // Mesma ordem de trava da retirada (validade e depois id), para que as duas nunca se esperem em ciclo.
+      const ids = [...checkpoints.keys()];
       const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
         SELECT id FROM lots WHERE "clinicId" = ${clinicId}::uuid AND id IN (${Prisma.join(ids.map(id => Prisma.sql`${id}::uuid`))})
-        ORDER BY id FOR UPDATE
+        ORDER BY "expiresOn" ASC NULLS LAST, id FOR UPDATE
       `);
       if (locked.length !== ids.length) throw moved();
       const counts = await tx.movement.groupBy({ by: ['lotId'], where: { lotId: { in: ids } }, _count: { _all: true } });
