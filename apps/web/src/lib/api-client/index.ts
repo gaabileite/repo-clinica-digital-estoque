@@ -19,6 +19,8 @@ import type {
   CreateReceiptDto,
   CreateReturnDto,
   CreateWithdrawalDto,
+  DashboardControllerWeeklyConsumptionParams,
+  DashboardDto,
   ItemsControllerListParams,
   LotListDto,
   MovementDto,
@@ -37,6 +39,8 @@ import type {
   WithdrawalDto,
   WriteOffDto,
   WriteOffExpiredLotsDto
+  WeeklyConsumptionDto,
+  WithdrawalDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -1872,7 +1876,7 @@ export const alertsControllerList = async (clinicId: string, options?: Parameter
 
 
 export type dashboardControllerSummaryResponse200 = {
-  data: void
+  data: DashboardDto
   status: 200
 }
 
@@ -1892,6 +1896,7 @@ export const getDashboardControllerSummaryUrl = (clinicId: string,) => {
 }
 
 /**
+ * Indicadores em itens, itens críticos, lotes a vencer e vencidos. As últimas movimentações só vêm para Administrador e Superuser.
  * @summary Painel por perfil (E-16)
  */
 export const dashboardControllerSummary = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerSummaryResponse> => {
@@ -1908,7 +1913,7 @@ export const dashboardControllerSummary = async (clinicId: string, options?: Par
 
 
 export type dashboardControllerWeeklyConsumptionResponse200 = {
-  data: void
+  data: WeeklyConsumptionDto
   status: 200
 }
 
@@ -1919,20 +1924,30 @@ export type dashboardControllerWeeklyConsumptionResponseSuccess = (dashboardCont
 
 export type dashboardControllerWeeklyConsumptionResponse = (dashboardControllerWeeklyConsumptionResponseSuccess)
 
-export const getDashboardControllerWeeklyConsumptionUrl = (clinicId: string,) => {
+export const getDashboardControllerWeeklyConsumptionUrl = (clinicId: string,
+    params: DashboardControllerWeeklyConsumptionParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption`
 }
 
 /**
+ * Só Superuser e Administrador. A última semana é a atual, ainda em andamento.
  * @summary Consumo semanal de um insumo (E-17)
  */
-export const dashboardControllerWeeklyConsumption = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerWeeklyConsumptionResponse> => {
+export const dashboardControllerWeeklyConsumption = async (clinicId: string,
+    params: DashboardControllerWeeklyConsumptionParams, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerWeeklyConsumptionResponse> => {
 
-  return customFetch<dashboardControllerWeeklyConsumptionResponse>(getDashboardControllerWeeklyConsumptionUrl(clinicId),
+  return customFetch<dashboardControllerWeeklyConsumptionResponse>(getDashboardControllerWeeklyConsumptionUrl(clinicId,params),
   {
     ...options,
     method: 'GET'

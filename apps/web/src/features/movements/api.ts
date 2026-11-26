@@ -3,10 +3,11 @@ import { useRef } from 'react';
 import {
   getMovementsControllerListUrl,
   inventoryAdjustmentsControllerCreate,
+  movementsControllerReverse,
   stockControllerLots,
 } from '@/lib/api-client';
 import { ApiError, customFetch } from '@/lib/api-client/custom-fetch';
-import type { CreateAdjustmentDto } from '@/lib/api-client/models';
+import type { CreateAdjustmentDto, ReverseMovementDto } from '@/lib/api-client/models';
 import { movementQuery, type MovementFilters, type MovementPage } from './model';
 
 export function movementErrorMessage(error: unknown): string {
@@ -19,6 +20,11 @@ export function movementErrorMessage(error: unknown): string {
     if (typeof problem?.detail === 'string') return problem.detail;
   }
   return 'Não foi possível concluir a operação. Verifique a conexão e tente novamente.';
+}
+
+export function reversalErrorMessage(error: unknown): string {
+  const detail = error instanceof ApiError ? (error.problem as { detail?: unknown } | undefined)?.detail : undefined;
+  return typeof detail === 'string' ? detail : movementErrorMessage(error);
 }
 
 export function useMovements(clinicId: string, filters: MovementFilters) {
@@ -71,6 +77,30 @@ export function useInventoryAdjustment(clinicId: string) {
     retry: false,
     onSuccess: async () => {
       attempt.current = null;
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['movements', clinicId] }),
+        client.invalidateQueries({ queryKey: ['stock', 'balances', clinicId] }),
+        client.invalidateQueries({ queryKey: ['stock', 'lots', clinicId] }),
+      ]);
+    },
+  });
+}
+
+export function useMovementReversal(clinicId: string, movementId: string) {
+  const client = useQueryClient();
+  const attempt = useRef<{ reason: string; key: string } | null>(null);
+
+  return useMutation({
+    mutationFn: async (body: ReverseMovementDto) => {
+      if (attempt.current?.reason !== body.reason) {
+        attempt.current = { reason: body.reason, key: crypto.randomUUID() };
+      }
+      return (await movementsControllerReverse(clinicId, movementId, body, {
+        headers: { 'Idempotency-Key': attempt.current.key },
+      })).data;
+    },
+    retry: false,
+    onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['movements', clinicId] }),
         client.invalidateQueries({ queryKey: ['stock', 'balances', clinicId] }),

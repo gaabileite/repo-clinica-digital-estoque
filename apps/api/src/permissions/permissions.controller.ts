@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Put, UnauthorizedException } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
+import { CurrentAuth, RequirePermissions, RequireProfile } from '../access/access.decorators';
 import type { AuthContext } from '../access/auth-context';
 import { MyPermissionsDto } from './dto/my-permissions.dto';
 import { ReplaceRolePermissionsDto, RolePermissionsDto } from './dto/role-permissions.dto';
@@ -30,6 +30,7 @@ export class PermissionsController {
   }
 
   @Get('roles')
+  @RequireProfile('superuser')
   @RequirePermissions('stock:admin')
   @ApiOperation({ summary: 'Perfis do módulo e suas permissões (E-51)' })
   @ApiOkResponse({ type: RolePermissionsDto, isArray: true })
@@ -38,6 +39,7 @@ export class PermissionsController {
   }
 
   @Put('roles/:role/permissions')
+  @RequireProfile('superuser')
   @RequirePermissions('stock:admin')
   @ApiOperation({
     summary: 'Substitui as permissões de um perfil (RF-03) (E-52)',
