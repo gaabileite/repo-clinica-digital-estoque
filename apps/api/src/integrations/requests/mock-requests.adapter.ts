@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { MOCK_CLINIC_DENTISTRY_ID, MOCK_CLINIC_PHYSIO_ID } from '../mock-ids';
+import { MOCK_CLINIC_DENTISTRY_ID } from '../mock-ids';
 import type { RequestsAdapter, SupplyRequest, SupplyRequestStatus } from './requests.adapter';
 
-const REQUESTS: SupplyRequest[] = [
+/** Fixed requests. They are returned for whichever clinic asks, with that clinic's id filled in. */
+const TEMPLATES: Array<Omit<SupplyRequest, 'clinicId'>> = [
   {
     id: 'mock-request-1',
     number: 'REQ-0001',
-    clinicId: MOCK_CLINIC_DENTISTRY_ID,
     requestedOn: '2026-10-28',
     status: 'open',
     items: [
@@ -17,7 +17,6 @@ const REQUESTS: SupplyRequest[] = [
   {
     id: 'mock-request-2',
     number: 'REQ-0002',
-    clinicId: MOCK_CLINIC_DENTISTRY_ID,
     requestedOn: '2026-10-20',
     status: 'cancelled',
     items: [{ itemId: 'mock-item-1', quantity: '10.000' }],
@@ -25,24 +24,27 @@ const REQUESTS: SupplyRequest[] = [
   {
     id: 'mock-request-3',
     number: 'REQ-0003',
-    clinicId: MOCK_CLINIC_PHYSIO_ID,
     requestedOn: '2026-11-02',
     status: 'open',
     items: [{ itemId: 'mock-item-3', quantity: '8.000' }],
   },
 ];
 
-/** Fake Requests module with three requests in two clinics. */
+const forClinic = (clinicId: string): SupplyRequest[] =>
+  TEMPLATES.map((template) => ({ ...structuredClone(template), clinicId }));
+
+/**
+ * Fake Requests module. It answers the same three requests for any clinic, so the receipts screen can
+ * be built and tried on any database. Its item ids are invented: the real module will use real ids.
+ */
 @Injectable()
 export class MockRequestsAdapter implements RequestsAdapter {
   async listRequests(filter: { clinicId: string; status?: SupplyRequestStatus }) {
-    return REQUESTS.filter(
-      (r) => r.clinicId === filter.clinicId && (filter.status === undefined || r.status === filter.status),
-    ).map((r) => structuredClone(r));
+    return forClinic(filter.clinicId).filter((r) => filter.status === undefined || r.status === filter.status);
   }
 
   async getRequest(requestId: string) {
-    const request = REQUESTS.find((r) => r.id === requestId);
-    return request ? structuredClone(request) : null;
+    // The id does not say which clinic it belongs to, so the answer carries the first mock clinic.
+    return forClinic(MOCK_CLINIC_DENTISTRY_ID).find((r) => r.id === requestId) ?? null;
   }
 }
