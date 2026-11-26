@@ -76,7 +76,7 @@ export function operationError(error: unknown) {
 }
 
 // Uma tentativa repetida com os mesmos dados conserva a chave de idempotência.
-export function useStockOperation<T>(clinicId: string, send: (body: T, key: string) => Promise<unknown>) {
+export function useStockOperation<T, R = unknown>(clinicId: string, send: (body: T, key: string) => Promise<R>) {
   const client = useQueryClient();
   const attempt = useRef<{ body: string; key: string } | null>(null);
   return useMutation({
@@ -95,6 +95,7 @@ export function useStockOperation<T>(clinicId: string, send: (body: T, key: stri
         client.invalidateQueries({ queryKey: ['movements'] }),
         client.invalidateQueries({ queryKey: ['dashboard'] }),
         client.invalidateQueries({ queryKey: ['registrations', clinicId] }),
+        client.invalidateQueries({ queryKey: ['receipt-notes', clinicId] }),
       ]);
     },
   });

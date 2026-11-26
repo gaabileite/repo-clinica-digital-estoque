@@ -6,6 +6,8 @@ import {
 } from '@/features/stock/operation';
 import type { CreateWithdrawalDto } from '@/lib/api-client/models';
 import { useAvailability, useWithdrawal } from './api';
+import { UndoWithdrawal } from './UndoWithdrawal';
+import type { WithdrawalDto } from '@/lib/api-client/models';
 
 type Kind = CreateWithdrawalDto['kind'];
 
@@ -26,9 +28,10 @@ function WithdrawalForm({ clinicId }: { clinicId: string }) {
   const [recipient, setRecipient] = useState('');
   const [reason, setReason] = useState('');
   const [notice, setNotice] = useState('');
+  const [lastWithdrawal, setLastWithdrawal] = useState<WithdrawalDto>();
   const item = useOperationItem(clinicId, code);
   const lots = useOperationLots(clinicId, item.data?.id);
-  const availability = useAvailability(clinicId, item.data?.id, quantity);
+  const availability = useAvailability(clinicId, item.data?.id, quantity, lotId);
   const mutation = useWithdrawal(clinicId);
   const needsRecipient = kind === 'loan' || kind === 'donation';
   const needsReason = kind !== 'consumption';
@@ -47,13 +50,16 @@ function WithdrawalForm({ clinicId }: { clinicId: string }) {
       ...(lotId ? { lotId } : {}),
       ...(needsRecipient ? { recipient: recipient.trim() } : {}),
       ...(needsReason ? { reason: reason.trim() } : {}),
-    }, { onSuccess: () => {
+    }, { onSuccess: (result) => {
+      setLastWithdrawal(result);
       setNotice('Saída registrada com sucesso.');
       setQuantity(''); setLotId(''); setRecipient(''); setReason('');
     } });
   }
 
   return (
+    <>
+    {lastWithdrawal && <UndoWithdrawal key={lastWithdrawal.movements?.[0]?.id} clinicId={clinicId} withdrawal={lastWithdrawal} />}
     <form onSubmit={submit} className="max-w-2xl rounded-xl border border-line bg-surface p-5">
       <fieldset disabled={mutation.isPending} className="space-y-4">
         <label className="block text-sm font-medium">Código do insumo
@@ -94,11 +100,12 @@ function WithdrawalForm({ clinicId }: { clinicId: string }) {
             {usableLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.lotCode} — {lot.expiresOn ?? 'sem validade'} ({lot.quantity})</option>)}
           </select>
         </label>}
-        {lotId && preview?.suggestedLot?.id !== lotId && <p role="status">Atenção: você escolheu um lote diferente do sugerido.</p>}
+        {preview?.warnings?.map((warning) => <p key={warning.code} role="alert" className="text-warning-text">{warning.message}</p>)}
         {mutation.isError && <ErrorState title="Saída não confirmada" message={operationError(mutation.error)} />}
         {notice && <p role="status" className="text-success-text">{notice}</p>}
         <button className={submitClass} type="submit" disabled={!canSubmit || mutation.isPending}>{mutation.isPending ? 'Registrando...' : 'Confirmar saída'}</button>
       </fieldset>
     </form>
+    </>
   );
 }
