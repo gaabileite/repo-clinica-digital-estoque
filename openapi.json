@@ -2294,7 +2294,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Parâmetros de cálculo e de alerta (RF-04) (E-53)",
@@ -2305,9 +2312,27 @@
       "put": {
         "operationId": "SettingsController_update",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Informe pelo menos um parâmetro. Os demais mantêm o valor atual.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Altera os parâmetros do módulo (E-54)",
@@ -4454,6 +4479,72 @@
         "required": [
           "permissions"
         ]
+      },
+      "SettingsDto": {
+        "type": "object",
+        "properties": {
+          "safetyMarginPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 20
+          },
+          "highWithdrawalMultiplier": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "default": 3
+          },
+          "consumptionDropPercent": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 100,
+            "default": 50
+          },
+          "incorrectReceiptDeadlineDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "default": 45
+          }
+        },
+        "required": [
+          "safetyMarginPercent",
+          "highWithdrawalMultiplier",
+          "consumptionDropPercent",
+          "incorrectReceiptDeadlineDays"
+        ]
+      },
+      "UpdateSettingsDto": {
+        "type": "object",
+        "properties": {
+          "safetyMarginPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 20
+          },
+          "highWithdrawalMultiplier": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "default": 3
+          },
+          "consumptionDropPercent": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 100,
+            "default": 50
+          },
+          "incorrectReceiptDeadlineDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "default": 45
+          }
+        }
       }
     }
   }
