@@ -1882,6 +1882,7 @@
     },
     "/api/v1/clinics/{clinicId}/dashboard": {
       "get": {
+        "description": "Indicadores em itens, itens críticos, lotes a vencer e vencidos. As últimas movimentações só vêm para Administrador e Superuser.",
         "operationId": "DashboardController_summary",
         "parameters": [
           {
@@ -1895,7 +1896,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDto"
+                }
+              }
+            }
           }
         },
         "summary": "Painel por perfil (E-16)",
@@ -1906,6 +1914,7 @@
     },
     "/api/v1/clinics/{clinicId}/dashboard/weekly-consumption": {
       "get": {
+        "description": "Só Superuser e Administrador. A última semana é a atual, ainda em andamento.",
         "operationId": "DashboardController_weeklyConsumption",
         "parameters": [
           {
@@ -1915,11 +1924,40 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "itemCode",
+            "required": true,
+            "in": "query",
+            "description": "Código do insumo. Obrigatório: unidades diferentes não se somam.",
+            "schema": {
+              "example": "INS-0001",
+              "type": "string"
+            }
+          },
+          {
+            "name": "weeks",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 26,
+              "default": 8,
+              "example": 8,
+              "type": "number"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyConsumptionDto"
+                }
+              }
+            }
           }
         },
         "summary": "Consumo semanal de um insumo (E-17)",
@@ -3845,6 +3883,313 @@
           "userId",
           "createdAt",
           "lines"
+        ]
+      },
+      "DashboardSummaryDto": {
+        "type": "object",
+        "properties": {
+          "controlledItems": {
+            "type": "number",
+            "example": 7,
+            "description": "Insumos ativos da clínica. Os indicadores contam itens, não lotes (RF-37)."
+          },
+          "criticalItems": {
+            "type": "number",
+            "example": 2,
+            "description": "Insumos em nível crítico (nota 7 a 10) ou sem estoque utilizável (RN-01)."
+          },
+          "expiringItems": {
+            "type": "number",
+            "example": 3,
+            "description": "Insumos com pelo menos um lote a vencer."
+          },
+          "itemsWithExpiredLots": {
+            "type": "number",
+            "example": 1,
+            "description": "Insumos com pelo menos um lote vencido."
+          }
+        },
+        "required": [
+          "controlledItems",
+          "criticalItems",
+          "expiringItems",
+          "itemsWithExpiredLots"
+        ]
+      },
+      "DashboardCriticalItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0004"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "usableBalance": {
+            "type": "string",
+            "example": "3.000",
+            "description": "Saldo utilizável, sem lotes vencidos (RN-05)."
+          },
+          "criticalLevel": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 9,
+            "description": "Nível crítico de 0 a 10 (RN-01)."
+          },
+          "coverageDays": {
+            "type": "number",
+            "nullable": true,
+            "example": 2.3,
+            "description": "Dias de cobertura; nulo sem consumo."
+          },
+          "situation": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "out-of-stock"
+            ]
+          }
+        },
+        "required": [
+          "itemId",
+          "code",
+          "name",
+          "unit",
+          "usableBalance",
+          "criticalLevel",
+          "coverageDays",
+          "situation"
+        ]
+      },
+      "DashboardLotDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0004"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          },
+          "lotId": {
+            "type": "string"
+          },
+          "lotCode": {
+            "type": "string",
+            "example": "AL-702"
+          },
+          "expiresOn": {
+            "type": "string",
+            "example": "2026-12-12",
+            "description": "Data civil (fuso America/Recife)."
+          },
+          "daysToExpiry": {
+            "type": "number",
+            "example": 18,
+            "description": "Dias até a validade; negativo se vencido."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "9.000"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "expiring",
+              "expired"
+            ],
+            "description": "Sempre mostrar com cor e rótulo (RN-08)."
+          }
+        },
+        "required": [
+          "itemId",
+          "itemCode",
+          "itemName",
+          "unit",
+          "lotId",
+          "lotCode",
+          "expiresOn",
+          "daysToExpiry",
+          "quantity",
+          "status"
+        ]
+      },
+      "DashboardMovementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "consumption",
+            "description": "Categoria da movimentação, no formato do contrato (E-39)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "-2.000",
+            "description": "Positivo entra no estoque, negativo sai."
+          },
+          "lotCode": {
+            "type": "string",
+            "nullable": true,
+            "example": "LV-210"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nome do usuário, quando está no cache do IAM."
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "itemId",
+          "itemCode",
+          "itemName",
+          "kind",
+          "quantity",
+          "lotCode",
+          "userId",
+          "userName",
+          "occurredAt"
+        ]
+      },
+      "DashboardDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/DashboardSummaryDto"
+          },
+          "criticalItems": {
+            "description": "Até 20 itens, do mais crítico ao menos crítico.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardCriticalItemDto"
+            }
+          },
+          "expiringLots": {
+            "description": "Até 20 lotes a vencer, os que vencem primeiro no topo.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardLotDto"
+            }
+          },
+          "expiredLots": {
+            "description": "Até 20 lotes vencidos, os mais atrasados no topo.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardLotDto"
+            }
+          },
+          "recentMovements": {
+            "description": "Últimas 10 movimentações. Só vem para Administrador e Superuser; para o Almoxarife a chave não existe.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardMovementDto"
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "criticalItems",
+          "expiringLots",
+          "expiredLots"
+        ]
+      },
+      "WeeklyConsumptionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "INS-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cx"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "WeeklyConsumptionWeekDto": {
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "example": "2026-11-23",
+            "description": "Segunda-feira da semana (data civil)."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "3.500",
+            "description": "Consumo líquido de devoluções; nunca negativo (RN-02)."
+          }
+        },
+        "required": [
+          "weekStart",
+          "quantity"
+        ]
+      },
+      "WeeklyConsumptionDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/WeeklyConsumptionItemDto"
+          },
+          "weeks": {
+            "description": "Da semana mais antiga para a atual. A última semana ainda está em andamento.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyConsumptionWeekDto"
+            }
+          }
+        },
+        "required": [
+          "item",
+          "weeks"
         ]
       },
       "MyPermissionsDto": {
