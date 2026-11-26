@@ -1,11 +1,13 @@
-import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Req } from '@nestjs/common';
 import { ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { CurrentAuth, RequirePermissions } from '../access/access.decorators';
 import type { AuthContext } from '../access/auth-context';
 import { requireAuth } from '../access/require-auth';
-import { Idempotent } from '../common/idempotency/idempotency';
+import { Idempotent, requestHash, storageKey } from '../common/idempotency/idempotency';
 import { CreateReceiptDto } from './dto/create-receipt.dto';
 import { PendingRequestDto } from './dto/pending-request.dto';
+import { ReverseReceiptDto } from './dto/reverse-receipt.dto';
 import { ReceiptDto } from './dto/receipt-response.dto';
 import { PendingRequestsService } from './pending-requests.service';
 import { ReceiptsService } from './receipts.service';
@@ -58,8 +60,17 @@ export class ReceiptsController {
   @RequirePermissions('stock:receive')
   @Idempotent()
   @ApiOperation({ summary: 'Pede o estorno da nota (409 se algum lote foi movimentado) (E-31)' })
-  reverse(@Param('clinicId') clinicId: string, @Param('receiptId') receiptId: string, @Body() body: Record<string, unknown>) {
-    return this.service.reverse(clinicId, receiptId, body);
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  reverse(
+    @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
+    @Param('receiptId', new ParseUUIDPipe()) receiptId: string,
+    @CurrentAuth() auth: AuthContext | undefined,
+    @Req() request: Request,
+    @Body() body: ReverseReceiptDto,
+  ) {
+    const { userId } = requireAuth(auth);
+    const key = storageKey(userId, request.header('idempotency-key')!.trim());
+    return this.service.reverse(clinicId, receiptId, userId, key, requestHash(request), body.justification);
   }
 
   @Get('clinics/:clinicId/pending-requests')
