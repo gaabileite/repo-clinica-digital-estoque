@@ -9,7 +9,7 @@ import { Prisma, type ReceiptOrigin as DbReceiptOrigin } from '@prisma/client';
 import type { AuthContext } from '../access/auth-context';
 import { catalogTransaction } from '../common/catalog-transaction';
 import { notImplemented } from '../common/not-implemented';
-import { storageKey } from '../common/idempotency/idempotency';
+import { IDEMPOTENCY_RETENTION_MS, storageKey } from '../common/idempotency/idempotency';
 import { dec, toQuantityString } from '../domain';
 import { EventPublisher } from '../events/event-publisher.service';
 import { REQUESTS_ADAPTER, type RequestsAdapter } from '../integrations/requests/requests.adapter';
@@ -126,6 +126,8 @@ export class ReceiptsService {
             data: { receiptId: receipt.id, itemId: item.id, receivedQuantity: quantity.toFixed(3), lotCode: lot.lotCode, expiresOn, lotId },
           });
           // Lote e validade ficam copiados no lançamento (RNF-14).
+          // O lote continua travado pelo update/create até o commit.
+          const priorCount = await tx.movement.count({ where: { lotId } });
           const movement = await tx.movement.create({
             data: {
               clinicId,
@@ -134,6 +136,8 @@ export class ReceiptsService {
               lotCode: lot.lotCode,
               expiresOn,
               kind: 'ENTRY',
+              receiptId: receipt.id,
+              lotMovementCount: priorCount + 1,
               quantity: quantity.toFixed(3),
               userId: auth.userId,
               origin: body.origin,
@@ -225,8 +229,59 @@ export class ReceiptsService {
   document(_clinicId: string, _receiptId: string): Promise<never> {
     return notImplemented('E-30', 'PDF da nota (URL assinada do módulo de Arquivos)');
   }
-  reverse(_clinicId: string, _receiptId: string, _body: Record<string, unknown>): Promise<never> {
-    return notImplemented('E-31', 'Pede o estorno da nota (409 se algum lote foi movimentado)');
+  async reverse(clinicId: string, receiptId: string, userId: string, recordKey: string, hash: string, justification: string) {
+    const reason = justification.trim();
+    if (!reason) throw new UnprocessableEntityException({ code: 'STOCK_JUSTIFICATION_REQUIRED', detail: 'Informe o motivo do estorno.' });
+
+    return catalogTransaction(this.prisma, clinicId, async (tx) => {
+      const previous = await tx.idempotencyRecord.findUnique({ where: { key: recordKey } });
+      if (previous && Date.now() - previous.createdAt.getTime() <= IDEMPOTENCY_RETENTION_MS) {
+        if (previous.requestHash !== hash) throw new UnprocessableEntityException({ code: 'IDEMPOTENCY_CONFLICT', detail: 'Chave já usada com outro conteúdo.' });
+        return;
+      }
+      if (previous) await tx.idempotencyRecord.delete({ where: { key: recordKey } });
+      const receipt = await tx.receipt.findFirst({ where: { id: receiptId, clinicId }, include: { lines: true } });
+      if (!receipt) throw new NotFoundException({ detail: 'Nota não encontrada nesta clínica.' });
+      if (receipt.reversedAt) throw new ConflictException({ code: 'STOCK_REVERSAL_NOT_ALLOWED', detail: 'Nota já estornada.' });
+      const moved = () => new ConflictException({ code: 'STOCK_RECEIPT_LOT_MOVED', detail: 'Não foi possível confirmar que todos os lotes da nota estão intactos.' });
+      const entries = await tx.movement.findMany({ where: { receiptId, clinicId, kind: 'ENTRY' }, orderBy: { id: 'asc' } });
+      if (!entries.length || entries.length !== receipt.lines.length) throw moved();
+
+      const checkpoints = new Map<string, number>();
+      for (const entry of entries) {
+        if (!entry.lotId || entry.lotMovementCount === null) throw moved();
+        checkpoints.set(entry.lotId, Math.max(checkpoints.get(entry.lotId) ?? 0, entry.lotMovementCount));
+      }
+      // Mesma ordem em toda a transação. Retiradas e ajustes concorrentes também travam os lotes.
+      const ids = [...checkpoints.keys()].sort();
+      const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT id FROM lots WHERE "clinicId" = ${clinicId}::uuid AND id IN (${Prisma.join(ids.map(id => Prisma.sql`${id}::uuid`))})
+        ORDER BY id FOR UPDATE
+      `);
+      if (locked.length !== ids.length) throw moved();
+      const counts = await tx.movement.groupBy({ by: ['lotId'], where: { lotId: { in: ids } }, _count: { _all: true } });
+      if (counts.some(row => row._count._all !== checkpoints.get(row.lotId!))) throw moved();
+
+      for (const entry of entries) {
+        const lotId = entry.lotId!;
+        const changed = await tx.lot.updateMany({ where: { id: lotId, clinicId, quantity: { gte: entry.quantity } }, data: { quantity: { decrement: entry.quantity } } });
+        if (!changed.count) throw moved();
+        const reversal = await tx.movement.create({ data: {
+          clinicId, itemId: entry.itemId, lotId, lotCode: entry.lotCode, expiresOn: entry.expiresOn,
+          kind: 'REVERSAL', quantity: entry.quantity.negated(), reason, userId, origin: 'manual', reversalOfId: entry.id,
+        } });
+        await this.events.publish('stock.movement.recorded', `${clinicId}:${entry.itemId}`, {
+          clinicId, receiptId, movementId: reversal.id, itemId: entry.itemId, lotId, kind: 'reversal',
+          quantity: toQuantityString(reversal.quantity), reversalOfId: entry.id, userId, occurredAt: reversal.occurredAt.toISOString(),
+        }, { clinicId, tx });
+      }
+      const reversedAt = new Date();
+      await tx.receipt.update({ where: { id: receiptId }, data: { reversedAt, reversalReason: reason } });
+      const after = { receiptId, clinicId, number: receipt.number, userId, justification: reason, reversedAt: reversedAt.toISOString() };
+      await tx.auditEntry.create({ data: { clinicId, userId, action: 'reverse', entity: 'receipt', entityId: receiptId, after } });
+      await this.events.publish('stock.receipt.reversed', `${clinicId}:${receiptId}`, after, { clinicId, tx });
+      await tx.idempotencyRecord.create({ data: { key: recordKey, requestHash: hash, response: { status: 201, body: null } } });
+    });
   }
   pendingRequests(_clinicId: string): Promise<never> {
     return notImplemented('E-32', 'Requisições em aberto para importar a data do pedido');
