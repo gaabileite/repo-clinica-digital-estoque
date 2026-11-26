@@ -1,15 +1,15 @@
-import { EmptyState, PageHeader } from '@/components/ui';
+import { PageHeader } from '@/components/ui';
+import { CalculationSettings } from './CalculationSettings';
+import { RoleSettings } from './RoleSettings';
 
-/**
- * Configurações (RF-03, RF-04). Perfis: superuser.
- * Permissões por perfil e parâmetros de cálculo e de alerta.
- * Referência visual: prototype/ (protótipo validado). Regras: docs/requirements.md.
- */
 export function SettingsPage() {
   return (
     <>
       <PageHeader title="Configurações" />
-      <EmptyState title="Em construção" description="Permissões por perfil e parâmetros de cálculo e de alerta." />
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <CalculationSettings />
+        <RoleSettings />
+      </div>
     </>
   );
 }

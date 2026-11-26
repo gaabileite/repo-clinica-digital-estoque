@@ -20,6 +20,8 @@ import type {
   CreateReceiptDto,
   CreateReturnDto,
   CreateWithdrawalDto,
+  DashboardControllerWeeklyConsumptionParams,
+  DashboardDto,
   DiscardIncorrectReceiptDto,
   ExchangeIncorrectReceiptDto,
   IncorporateIncorrectReceiptDto,
@@ -36,11 +38,16 @@ import type {
   ReplaceRolePermissionsDto,
   ReverseMovementDto,
   RolePermissionsDto,
+  SettingsDto,
   StockControllerAvailabilityParams,
   StockControllerBalancesParams,
   UpdateCategoryDto,
   UpdateItemDto,
-  WithdrawalDto
+  UpdateSettingsDto,
+  WeeklyConsumptionDto,
+  WithdrawalDto,
+  WriteOffDto,
+  WriteOffExpiredLotsDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
@@ -943,7 +950,7 @@ return customFetch<withdrawalsControllerCreateResponse>(getWithdrawalsController
 
 
 export type withdrawalsControllerWriteOffExpiredLotsResponse201 = {
-  data: void
+  data: WriteOffDto
   status: 201
 }
 
@@ -963,16 +970,32 @@ export const getWithdrawalsControllerWriteOffExpiredLotsUrl = (clinicId: string,
 }
 
 /**
+ * Sem `lotIds`, baixa todos os lotes vencidos com saldo da clínica. Com `lotIds`, só os escolhidos (422 se algum não for um lote vencido desta clínica).
  * @summary Baixa lotes vencidos como perda por validade (E-23)
  */
-export const withdrawalsControllerWriteOffExpiredLots = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<withdrawalsControllerWriteOffExpiredLotsResponse> => {
+export const withdrawalsControllerWriteOffExpiredLots = async (clinicId: string,
+    writeOffExpiredLotsDto: WriteOffExpiredLotsDto, options?: Parameters<typeof customFetch>[1]): Promise<withdrawalsControllerWriteOffExpiredLotsResponse> => {
 
-  return customFetch<withdrawalsControllerWriteOffExpiredLotsResponse>(getWithdrawalsControllerWriteOffExpiredLotsUrl(clinicId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<withdrawalsControllerWriteOffExpiredLotsResponse>(getWithdrawalsControllerWriteOffExpiredLotsUrl(clinicId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(writeOffExpiredLotsDto)
   }
 );}
 
@@ -1922,7 +1945,7 @@ export const alertsControllerList = async (clinicId: string, options?: Parameter
 
 
 export type dashboardControllerSummaryResponse200 = {
-  data: void
+  data: DashboardDto
   status: 200
 }
 
@@ -1942,6 +1965,7 @@ export const getDashboardControllerSummaryUrl = (clinicId: string,) => {
 }
 
 /**
+ * Indicadores em itens, itens críticos, lotes a vencer e vencidos. As últimas movimentações só vêm para Administrador e Superuser.
  * @summary Painel por perfil (E-16)
  */
 export const dashboardControllerSummary = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerSummaryResponse> => {
@@ -1958,7 +1982,7 @@ export const dashboardControllerSummary = async (clinicId: string, options?: Par
 
 
 export type dashboardControllerWeeklyConsumptionResponse200 = {
-  data: void
+  data: WeeklyConsumptionDto
   status: 200
 }
 
@@ -1969,20 +1993,30 @@ export type dashboardControllerWeeklyConsumptionResponseSuccess = (dashboardCont
 
 export type dashboardControllerWeeklyConsumptionResponse = (dashboardControllerWeeklyConsumptionResponseSuccess)
 
-export const getDashboardControllerWeeklyConsumptionUrl = (clinicId: string,) => {
+export const getDashboardControllerWeeklyConsumptionUrl = (clinicId: string,
+    params: DashboardControllerWeeklyConsumptionParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption`
+  return stringifiedParams.length > 0 ? `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption?${stringifiedParams}` : `/api/v1/clinics/${clinicId}/dashboard/weekly-consumption`
 }
 
 /**
+ * Só Superuser e Administrador. A última semana é a atual, ainda em andamento.
  * @summary Consumo semanal de um insumo (E-17)
  */
-export const dashboardControllerWeeklyConsumption = async (clinicId: string, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerWeeklyConsumptionResponse> => {
+export const dashboardControllerWeeklyConsumption = async (clinicId: string,
+    params: DashboardControllerWeeklyConsumptionParams, options?: Parameters<typeof customFetch>[1]): Promise<dashboardControllerWeeklyConsumptionResponse> => {
 
-  return customFetch<dashboardControllerWeeklyConsumptionResponse>(getDashboardControllerWeeklyConsumptionUrl(clinicId),
+  return customFetch<dashboardControllerWeeklyConsumptionResponse>(getDashboardControllerWeeklyConsumptionUrl(clinicId,params),
   {
     ...options,
     method: 'GET'
@@ -2445,7 +2479,7 @@ return customFetch<permissionsControllerReplaceResponse>(getPermissionsControlle
 
 
 export type settingsControllerGetResponse200 = {
-  data: void
+  data: SettingsDto
   status: 200
 }
 
@@ -2481,7 +2515,7 @@ export const settingsControllerGet = async ( options?: Parameters<typeof customF
 
 
 export type settingsControllerUpdateResponse200 = {
-  data: void
+  data: SettingsDto
   status: 200
 }
 
@@ -2503,14 +2537,28 @@ export const getSettingsControllerUpdateUrl = () => {
 /**
  * @summary Altera os parâmetros do módulo (E-54)
  */
-export const settingsControllerUpdate = async ( options?: Parameters<typeof customFetch>[1]): Promise<settingsControllerUpdateResponse> => {
+export const settingsControllerUpdate = async (updateSettingsDto: UpdateSettingsDto, options?: Parameters<typeof customFetch>[1]): Promise<settingsControllerUpdateResponse> => {
 
-  return customFetch<settingsControllerUpdateResponse>(getSettingsControllerUpdateUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<settingsControllerUpdateResponse>(getSettingsControllerUpdateUrl(),
   {
     ...options,
-    method: 'PUT'
-
-
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSettingsDto)
   }
 );}
 

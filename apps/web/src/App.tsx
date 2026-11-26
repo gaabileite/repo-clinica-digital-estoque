@@ -82,10 +82,12 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
   const current = shouldOpenBudget ? pageById('budget') : requestedPage;
   const Page = current.component;
   const grantedPermissions = permissions ?? query.data?.permissions ?? [];
+  const canOpenSettings = query.data?.profile === 'superuser' && hasPermission(grantedPermissions, 'stock:admin');
 
   const nav = PAGES.filter(
     (p) =>
       p.inNav &&
+      (p.id !== 'settings' || canOpenSettings) &&
       (!isBudgetController || p.id !== '') &&
       hasPermission(grantedPermissions, p.permission),
   );
@@ -95,7 +97,7 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
     hasPermission(grantedPermissions, 'stock:read');
   const canAccess = current.id === 'notifications'
     ? canShowNotifications
-    : hasPermission(grantedPermissions, current.permission);
+    : (current.id !== 'settings' || canOpenSettings) && hasPermission(grantedPermissions, current.permission);
 
   return (
     <ModuleSessionContext.Provider value={{

@@ -6,6 +6,7 @@ import { TokenVerifier } from '../src/access/token-verifier';
 import { AppModule } from '../src/app.module';
 import { CategoriesService } from '../src/categories/categories.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { SettingsService } from '../src/settings/settings.service';
 
 const CLINIC_1 = '11111111-1111-4111-8111-111111111111';
 
@@ -38,6 +39,11 @@ async function createApp(): Promise<INestApplication> {
     .useValue(fakeVerifier)
     .overrideProvider(CategoriesService)
     .useValue(fakeCategories)
+    .overrideProvider(SettingsService)
+    .useValue({
+      get: async () => ({ safetyMarginPercent: 20 }),
+      update: async (body: unknown) => body,
+    })
     .compile();
   const app = moduleRef.createNestApplication();
   // The same pipe as main.ts: without it, this test would not see what a real client sees (400 for a bad body).
@@ -92,6 +98,13 @@ describe('who can see and edit the permission matrix (e2e)', () => {
   it('answers 401 without credentials', async () => {
     await request(app.getHttpServer()).get('/roles').expect(401);
   });
+
+  it('lets the superuser read and update calculation settings', async () => {
+    const http = request(app.getHttpServer());
+    const token = 'Bearer token-superuser';
+    await http.get('/settings').set('Authorization', token).expect(200, { safetyMarginPercent: 20 });
+    await http.put('/settings').set('Authorization', token).send({ safetyMarginPercent: 24 }).expect(200, { safetyMarginPercent: 24 });
+  });
 });
 
 describe('editing the permission matrix (e2e)', () => {
@@ -140,6 +153,20 @@ describe('editing the permission matrix (e2e)', () => {
 
   it('answers 404 for an unknown profile', async () => {
     await put('token-superuser', 'manager', ['stock:read']).expect(404);
+  });
+
+  it('requires the superuser profile for administrative settings even when another profile has stock:admin', async () => {
+    await put('token-superuser', 'admin', ['stock:admin']).expect(200);
+    const mine = await get('token-admin', '/me/permissions').expect(200);
+    expect(mine.body.permissions).toEqual(['stock:admin']);
+
+    await get('token-admin', '/roles').expect(403);
+    await put('token-admin', 'warehouse', ['stock:read']).expect(403);
+    await get('token-admin', '/settings').expect(403);
+    await request(app.getHttpServer()).put('/settings')
+      .set('Authorization', 'Bearer token-admin')
+      .send({ safetyMarginPercent: 24 })
+      .expect(403);
   });
 
   // Keep this one last: it changes the warehouse profile for the rest of this file.
