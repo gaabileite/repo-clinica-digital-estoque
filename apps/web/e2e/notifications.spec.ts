@@ -63,3 +63,10 @@ test('informa que a caixa está indisponível sem a demonstração ou um adaptad
   await expect(page.getByText('Caixa de entrada indisponível')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Alertas de estoque' })).toHaveCount(0);
 });
+
+test('não mostra o sino quando não há caixa de entrada conectada', async ({ page }) => {
+  await page.route(permissionsUrl, (route) => route.fulfill({ json: warehouse }));
+  await page.goto('/');
+  await expect(page.getByRole('navigation')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Notificações/ })).toHaveCount(0);
+});

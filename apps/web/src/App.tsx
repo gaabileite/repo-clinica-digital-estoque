@@ -8,7 +8,7 @@ import { ErrorState, LoadingState } from './components/ui';
 import { ApiError } from './lib/api-client/custom-fetch';
 import { getMePermissions } from './lib/me-permissions';
 import { useShellPage } from './lib/use-shell-page';
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { NotificationInboxContext, type NotificationInbox } from './features/notifications/api';
 import { NotificationBell } from './features/notifications/NotificationBell';
 
@@ -32,6 +32,7 @@ export function App(props: AppProps) {
 
 function ModuleContent({ standalone = false, permissions }: AppProps) {
   const { page, go } = useShellPage(standalone);
+  const hasNotificationInbox = useContext(NotificationInboxContext) !== undefined;
   const query = useQuery({
     queryKey: ['me', 'permissions'],
     queryFn: ({ signal }) => getMePermissions(signal),
@@ -109,7 +110,7 @@ function ModuleContent({ standalone = false, permissions }: AppProps) {
         <div className="min-w-0 flex-1">
           <ModuleNav pages={nav} current={current.id} onGo={go} />
         </div>
-        {canShowNotifications && (
+        {canShowNotifications && hasNotificationInbox && (
           <NotificationBell current={current.id === 'notifications'} onOpen={() => go('notifications')} />
         )}
       </div>
