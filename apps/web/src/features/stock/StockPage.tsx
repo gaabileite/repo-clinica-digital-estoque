@@ -86,13 +86,19 @@ function developmentClinics(): string[] {
 function StockContent() {
   const session = useQuery({ queryKey: ['me', 'permissions'], queryFn: ({ signal }) => getMePermissions(signal), retry: false });
   const clinicIds = session.data?.clinics ?? developmentClinics();
-  const [chosenClinic, setChosenClinic] = useState('');
+  const [chosenClinic, setChosenClinic] = useState(() => new URLSearchParams(window.location.search).get('clinic') ?? '');
   const clinicId = clinicIds.includes(chosenClinic) ? chosenClinic : (clinicIds[0] ?? '');
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '');
   const [categoryId, setCategoryId] = useState('');
-  const [situation, setSituation] = useState<StockControllerBalancesParams['situation']>();
-  const [expiry, setExpiry] = useState<StockControllerBalancesParams['expiry']>();
+  const [situation, setSituation] = useState<StockControllerBalancesParams['situation']>(() => {
+    const value = new URLSearchParams(window.location.search).get('situation');
+    return value === 'critical' || value === 'out-of-stock' ? value : undefined;
+  });
+  const [expiry, setExpiry] = useState<StockControllerBalancesParams['expiry']>(() => {
+    const value = new URLSearchParams(window.location.search).get('expiry');
+    return value === 'expired' || value === 'expiring' ? value : undefined;
+  });
   const [lotControl, setLotControl] = useState<StockControllerBalancesParams['lotControl']>();
   const [temperature, setTemperature] = useState<StockControllerBalancesParams['temperature']>();
   const [sort, setSort] = useState<NonNullable<StockControllerBalancesParams['sort']>>('name');
