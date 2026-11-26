@@ -166,7 +166,7 @@ export class IncorrectReceiptsService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         // Locks the clinic row, so a lot is never created twice by two entries at the same time (same idea as E-27).
-        await tx.$queryRaw`SELECT id FROM clinics WHERE id = ${clinicId}::uuid FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM clinics WHERE id = ${clinicId}::uuid FOR NO KEY UPDATE`;
 
         const current = await this.findOwned(tx, clinicId, id);
         this.assertOpen(current);
