@@ -38,11 +38,10 @@ import type {
   UpdateCategoryDto,
   UpdateItemDto,
   UpdateSettingsDto,
+  WeeklyConsumptionDto,
   WithdrawalDto,
   WriteOffDto,
   WriteOffExpiredLotsDto
-  WeeklyConsumptionDto,
-  WithdrawalDto
 } from './models';
 
 import { customFetch } from './custom-fetch';
