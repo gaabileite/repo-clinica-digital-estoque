@@ -42,6 +42,7 @@ describe('cursor das notas', () => {
     ['json inválido', Buffer.from('{').toString('base64url')],
     ['id fora do formato', encodeCursor({ ...payload, id: 'abc' })],
     ['data civil inexistente', encodeCursor({ ...payload, r: '2026-02-31' })],
+    ['mês inexistente', encodeCursor({ ...payload, r: '2026-13-01' })],
     ['instante inválido', encodeCursor({ ...payload, c: 'ontem' })],
     ['preso a outros filtros', encodeCursor({ ...payload, scope: cursorScope(CLINIC, { origin: 'central-warehouse' }) })],
   ])('rejeita cursor inválido: %s', (_name, cursor) => {

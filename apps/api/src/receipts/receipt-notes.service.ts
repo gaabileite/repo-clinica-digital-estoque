@@ -5,18 +5,17 @@ import { isUUID } from 'class-validator';
 import { toQuantityString } from '../domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { dateColumnToCivil } from '../stock/civil-date';
+import { isCivilDate } from './receipt-rules';
 import type { ListReceiptsQueryDto } from './dto/list-receipts-query.dto';
 import type { ReceiptNoteDetailDto, ReceiptNotePageDto, ReceiptNoteSummaryDto } from './dto/receipt-note-response.dto';
 import { fromDbOrigin } from './receipts.service';
 
 const DEFAULT_LIMIT = 50;
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 const invalid = (detail: string, field?: string) =>
   new BadRequestException(field ? { detail, errors: { [field]: [detail] } } : { detail });
 
 const civilDate = (value: string) => new Date(`${value}T00:00:00.000Z`);
-const isRealDate = (value: string) => DATE_ONLY.test(value) && dateColumnToCivil(civilDate(value)) === value;
 
 /** Linha com pedido e recebimento que não batem: `orderedQuantity` nula não conta como divergência. */
 export function hasDivergence(lines: { orderedQuantity: { equals(other: unknown): boolean } | null; receivedQuantity: unknown }[]): boolean {
@@ -50,7 +49,7 @@ export function decodeCursor(cursor: string | undefined, scope: string): Receipt
       typeof p.id !== 'string' ||
       !isUUID(p.id) ||
       typeof p.r !== 'string' ||
-      !isRealDate(p.r) ||
+      !isCivilDate(p.r) ||
       typeof p.c !== 'string' ||
       Number.isNaN(new Date(p.c).getTime())
     ) {
@@ -70,8 +69,8 @@ export class ReceiptNotesService {
 
   /** E-28 (E5-H3): notas da clínica, da data de recebimento mais recente para a mais antiga. */
   async list(clinicId: string, query: ListReceiptsQueryDto): Promise<ReceiptNotePageDto> {
-    if (query.from && !isRealDate(query.from)) throw invalid('from não é uma data válida.', 'from');
-    if (query.to && !isRealDate(query.to)) throw invalid('to não é uma data válida.', 'to');
+    if (query.from && !isCivilDate(query.from)) throw invalid('from não é uma data válida.', 'from');
+    if (query.to && !isCivilDate(query.to)) throw invalid('to não é uma data válida.', 'to');
     if (query.from && query.to && query.from > query.to) throw invalid('from deve ser anterior ou igual a to.', 'from');
 
     const { cursor: _cursor, limit: _limit, ...filterQuery } = query;

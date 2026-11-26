@@ -199,6 +199,9 @@ describe.skipIf(!url)('lista e detalhe das notas de recebimento (e2e, real datab
     await list('?status=pending').expect(400);
     await list('?from=01/11/2026').expect(400);
     await list('?from=2026-02-31').expect(400);
+    await list('?from=2026-13-01').expect(400);
+    await list('?to=2026-00-10').expect(400);
+    await list('?to=2026-11-32').expect(400);
     await list('?from=2026-11-10&to=2026-11-01').expect(400);
   });
 
