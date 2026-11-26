@@ -1,11 +1,14 @@
-import { useContext, useId, useState, type FormEvent } from 'react';
+import { useContext, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ModuleSessionContext } from '@/app/ModuleProviders';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/components/ui';
 import { getDevClinicId } from '@/features/stock/api';
 import { catalogButtonClass as buttonClass, catalogInputClass as inputClass } from '@/features/registrations/CatalogDialog';
 import { movementErrorMessage, useMovements } from './api';
 import { InventoryAdjustmentDialog } from './InventoryAdjustmentDialog';
+import { MovementReversalDialog } from './MovementReversalDialog';
 import { emptyMovementFilters, formatCivilDate, formatMovementTime, formatQuantity, movementLabels, type Movement, type MovementFilters } from './model';
+
+const reversibleKinds = new Set<Movement['kind']>(['consumption', 'expiry-loss', 'damage-discard', 'loan', 'donation']);
 
 export function MovementsPage() {
   const session = useContext(ModuleSessionContext);
@@ -24,7 +27,15 @@ export function MovementsPage() {
           </select>
         </div>
       )}
-      {clinicId ? <MovementBook key={clinicId} clinicId={clinicId} canAdjust={session?.permissions.includes('stock:adjust') ?? false} /> : (
+      {clinicId ? (
+        <MovementBook
+          key={clinicId}
+          clinicId={clinicId}
+          canAdjust={session?.permissions.includes('stock:adjust') ?? false}
+          canWithdraw={session?.permissions.includes('stock:withdraw') ?? false}
+          canReverseOthers={session?.permissions.includes('stock:reverse') ?? false}
+        />
+      ) : (
         <>
           <PageHeader title="Movimentações" />
           <EmptyState title="Clínica não selecionada" description="Selecione uma clínica na sua sessão da plataforma para consultar as movimentações." />
@@ -34,16 +45,27 @@ export function MovementsPage() {
   );
 }
 
-function MovementBook({ clinicId, canAdjust }: { clinicId: string; canAdjust: boolean }) {
+function MovementBook({ clinicId, canAdjust, canWithdraw, canReverseOthers }: {
+  clinicId: string;
+  canAdjust: boolean;
+  canWithdraw: boolean;
+  canReverseOthers: boolean;
+}) {
   const [draft, setDraft] = useState<MovementFilters>({ ...emptyMovementFilters });
   const [filters, setFilters] = useState<MovementFilters>({ ...emptyMovementFilters });
   const [filterError, setFilterError] = useState('');
   const [adjusting, setAdjusting] = useState(false);
+  const [reversing, setReversing] = useState<Movement | null>(null);
   const [notice, setNotice] = useState('');
+  const noticeRef = useRef<HTMLParagraphElement>(null);
   const query = useMovements(clinicId, filters);
   const rows = query.data?.pages.flatMap((page) => page.data) ?? [];
   const movements = [...new Map(rows.map((row) => [row.id, row])).values()];
   const total = query.data?.pages[0]?.page.total ?? 0;
+  useEffect(() => {
+    if (notice) noticeRef.current?.focus();
+  }, [notice]);
+
   const field = (key: keyof MovementFilters, value: string) => setDraft((old) => ({ ...old, [key]: value }));
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -59,7 +81,7 @@ function MovementBook({ clinicId, canAdjust }: { clinicId: string; canAdjust: bo
     <>
       <PageHeader title="Movimentações" actions={canAdjust && <button type="button" className={buttonClass} onClick={() => { setNotice(''); setAdjusting(true); }}>Ajustar inventário</button>} />
       <p className="mb-4 text-sm text-muted">Histórico da clínica, do mais recente para o mais antigo. Horários de Recife.</p>
-      {notice && <p role="status" className="mb-4 rounded-xl border border-success-line bg-success-subtle p-4 text-sm text-success-text">{notice}</p>}
+      {notice && <p ref={noticeRef} tabIndex={-1} role="status" className="mb-4 rounded-xl border border-success-line bg-success-subtle p-4 text-sm text-success-text">{notice}</p>}
       <form aria-label="Filtros de movimentações" onSubmit={applyFilters} className="mb-5 rounded-xl border border-line bg-surface p-4">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label className="text-sm font-medium text-heading">Código do insumo
@@ -103,7 +125,15 @@ function MovementBook({ clinicId, canAdjust }: { clinicId: string; canAdjust: bo
                 <thead className="border-b border-line bg-surface-muted text-muted"><tr>
                   {['Data e hora', 'Usuário', 'Insumo', 'Lote e validade', 'Quantidade', 'Categoria', 'Detalhes'].map((label) => <th key={label} scope="col" className="px-4 py-3 font-medium">{label}</th>)}
                 </tr></thead>
-                <tbody>{movements.map((movement) => <MovementRow key={movement.id} movement={movement} />)}</tbody>
+                <tbody>{movements.map((movement) => (
+                  <MovementRow
+                    key={movement.id}
+                    movement={movement}
+                    onReverse={canWithdraw && movement.lot && !movement.reversedById && reversibleKinds.has(movement.kind)
+                      ? () => { setNotice(''); setReversing(movement); }
+                      : undefined}
+                  />
+                ))}</tbody>
               </table>
             </div>
           ) : <EmptyState title="Nenhuma movimentação encontrada" description="Ajuste os filtros ou aguarde o primeiro registro nesta clínica." />}
@@ -112,11 +142,20 @@ function MovementBook({ clinicId, canAdjust }: { clinicId: string; canAdjust: bo
         </>
       )}
       {adjusting && <InventoryAdjustmentDialog clinicId={clinicId} onClose={() => setAdjusting(false)} onSaved={(message) => { setAdjusting(false); setNotice(message); }} />}
+      {canWithdraw && reversing && (
+        <MovementReversalDialog
+          clinicId={clinicId}
+          movement={reversing}
+          canReverseOthers={canReverseOthers}
+          onClose={() => setReversing(null)}
+          onSaved={() => { setReversing(null); setNotice('Estorno registrado no histórico.'); }}
+        />
+      )}
     </>
   );
 }
 
-function MovementRow({ movement: row }: { movement: Movement }) {
+function MovementRow({ movement: row, onReverse }: { movement: Movement; onReverse?: () => void }) {
   return (
     <tr className="border-b border-line last:border-0">
       <td className="whitespace-nowrap px-4 py-3"><time dateTime={row.occurredAt}>{formatMovementTime(row.occurredAt)}</time></td>
@@ -132,7 +171,8 @@ function MovementRow({ movement: row }: { movement: Movement }) {
         {row.origin && <p>Origem: {row.origin}</p>}
         {row.reversalOfId && <p>Estorno de: {row.reversalOfId}</p>}
         {row.reversedById && <p>Estorno: {row.reversedById}</p>}
-        {!row.reason && !row.recipient && !row.returnedBy && !row.origin && !row.reversalOfId && !row.reversedById && '—'}
+        {!onReverse && !row.reason && !row.recipient && !row.returnedBy && !row.origin && !row.reversalOfId && !row.reversedById && '—'}
+        {onReverse && <button type="button" className={`${buttonClass} mt-2`} onClick={onReverse}>Estornar</button>}
       </td>
     </tr>
   );
