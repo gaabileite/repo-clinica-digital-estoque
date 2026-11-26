@@ -5,12 +5,18 @@ import type { AuthContext } from '../access/auth-context';
 import { Idempotent } from '../common/idempotency/idempotency';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 import { WithdrawalDto } from './dto/withdrawal-response.dto';
+import { WriteOffExpiredLotsDto } from './dto/write-off-expired-lots.dto';
+import { WriteOffDto } from './dto/write-off-response.dto';
+import { ExpiredLotsService } from './expired-lots.service';
 import { WithdrawalsService } from './withdrawals.service';
 
 @ApiTags('withdrawals')
 @Controller()
 export class WithdrawalsController {
-  constructor(private readonly service: WithdrawalsService) {}
+  constructor(
+    private readonly service: WithdrawalsService,
+    private readonly expiredLots: ExpiredLotsService,
+  ) {}
 
   @Post('clinics/:clinicId/withdrawals')
   @RequirePermissions('stock:withdraw')
@@ -30,8 +36,19 @@ export class WithdrawalsController {
   @Post('clinics/:clinicId/expired-lots/write-off')
   @RequirePermissions('stock:withdraw')
   @Idempotent()
-  @ApiOperation({ summary: 'Baixa lotes vencidos como perda por validade (E-23)' })
-  writeOffExpiredLots(@Param('clinicId') clinicId: string, @Body() body: Record<string, unknown>) {
-    return this.service.writeOffExpiredLots(clinicId, body);
+  @ApiOperation({
+    summary: 'Baixa lotes vencidos como perda por validade (E-23)',
+    description:
+      'Sem `lotIds`, baixa todos os lotes vencidos com saldo da clínica. Com `lotIds`, só os escolhidos (422 se algum não for um lote vencido desta clínica).',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'Chave de idempotência: reenviar com o mesmo corpo devolve a resposta original.' })
+  @ApiCreatedResponse({ type: WriteOffDto })
+  writeOffExpiredLots(
+    @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
+    @CurrentAuth() auth: AuthContext,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @Body() body: WriteOffExpiredLotsDto,
+  ) {
+    return this.expiredLots.writeOff(clinicId, auth.userId, idempotencyKey.trim(), body);
   }
 }
